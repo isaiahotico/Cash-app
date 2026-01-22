@@ -8,71 +8,125 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
     <script src="//libtl.com/sdk.js" data-zone="10337795" data-sdk="show_10337795"></script>
     <style>
-        :root { --main-bg: #0f172a; }
-        body { font-family: 'Poppins', sans-serif; background: var(--main-bg); color: white; transition: background 0.5s ease; overflow-x: hidden; }
-        .brick-bg { background-image: radial-gradient(circle at 2px 2px, rgba(255,255,255,0.05) 1px, transparent 0); background-size: 24px 24px; }
-        .glass { background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        .tab-content { display: none; height: calc(100vh - 140px); overflow-y: auto; }
+        body { font-family: 'Poppins', sans-serif; transition: background 0.4s ease; overflow-x: hidden; }
+        .bricks { background-image: linear-gradient(335deg, rgba(0,0,0,0.1) 23px, transparent 23px), linear-gradient(155deg, rgba(0,0,0,0.1) 23px, transparent 23px); background-size: 46px 46px; }
+        .glass { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.1); }
+        .tab-content { display: none; height: calc(100vh - 160px); overflow-y: auto; }
         .tab-content.active { display: block; }
-        
-        /* Reward Animations */
-        .reward-popup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 100; pointer-events: none; }
-        @keyframes floatUp { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(-100px); } }
-        
-        .nav-btn.active { color: #22d3ee; border-bottom: 3px solid #22d3ee; }
-        .aide-text { cursor: pointer; user-select: none; font-family: 'Orbitron', sans-serif; }
+        .reward-popup { position: fixed; pointer-events: none; z-index: 100; font-weight: 800; }
+        .nav-active { color: #fff; border-top: 3px solid #fff; background: rgba(255,255,255,0.05); }
     </style>
 </head>
-<body class="brick-bg">
+<body class="bg-slate-900 text-white bricks">
 
-    <div id="reward-container"></div>
+    <!-- Aide Text Background Changer -->
+    <div class="fixed top-2 left-1/2 -translate-x-1/2 z-50">
+        <span onclick="changeTheme()" class="bg-black/40 text-[10px] px-3 py-1 rounded-full border border-white/20 cursor-pointer animate-pulse uppercase tracking-widest">
+            Tap to Change Style ✨
+        </span>
+    </div>
 
-    <!-- Top Bar -->
-    <header class="p-4 glass sticky top-0 z-50 flex justify-between items-center border-b border-cyan-500/30">
+    <!-- Header -->
+    <header class="p-6 pt-10 flex justify-between items-center">
         <div>
-            <h1 class="text-xs font-bold text-cyan-400">🎖 PAPERHOUSE INC</h1>
-            <p id="live-username" class="text-sm font-semibold">Loading...</p>
+            <h1 id="user-display-name" class="font-bold text-xl">Loading...</h1>
+            <p class="text-[10px] text-green-400">🎖 TOP GLOBAL MEMBER</p>
         </div>
-        <div class="text-right">
-            <p class="text-[10px] text-gray-400">BALANCE</p>
-            <p id="top-balance" class="text-lg font-bold text-green-400">₱0.00</p>
+        <div class="text-right glass p-2 rounded-xl">
+            <p class="text-[9px] opacity-60">BALANCE</p>
+            <p id="balance" class="font-bold text-yellow-400 text-lg">₱0.00</p>
         </div>
     </header>
 
-    <!-- Aide Text (BG Changer) -->
-    <div class="p-2 text-center">
+    <!-- Main Content -->
+    <main class="px-4 pb-20">
+        
+        <!-- EARN TAB -->
+        <section id="earn" class="tab-content active">
 
-<p id="stat-daily" class="text-sm font-bold">0</p></div>
-                        <div class="bg-white/5 p-2 rounded-xl"><p class="text-[10px] text-gray-400">Weekly</p><p id="stat-weekly" class="text-sm font-bold">0</p></div>
-                        <div class="bg-white/5 p-2 rounded-xl"><p class="text-[10px] text-gray-400">Total</p><p id="stat-total" class="text-sm font-bold">0</p></div>
+            <div class="glass rounded-3xl p-8 mb-6 text-center">
+                <p class="text-xs opacity-60 mb-1">Total Earned Overall</p>
+                <h2 id="total-earned" class="text-5xl font-extrabold mb-4">₱0.00</h2>
+                <button onclick="switchTab('profile')" class="bg-white text-black px-6 py-2 rounded-full text-xs font-bold">View Detailed Stats</button>
+            </div>
+
+            <div class="grid gap-4">
+                <button onclick="watchTaskAd(1)" class="glass p-5 rounded-2xl flex justify-between items-center">
+                    <span>Main Ad <small class="block opacity-50">5m cooldown</small></span>
+                    <span id="timer-1" class="font-bold text-blue-400">WATCH</span>
+                </button>
+                <button onclick="watchTaskAd(2)" class="glass p-5 rounded-2xl flex justify-between items-center">
+                    <span>Bonus Ad <small class="block opacity-50">10m cooldown</small></span>
+                    <span id="timer-2" class="font-bold text-blue-400">WATCH</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- CHAT TAB -->
+        <section id="chat" class="tab-content">
+            <div class="flex flex-col h-full glass rounded-3xl overflow-hidden">
+                <div id="chat-box" class="flex-1 p-4 overflow-y-auto space-y-4 text-sm">
+                    <!-- Messages -->
+                </div>
+                <div class="p-4 bg-black/20">
+                    <div class="flex gap-2">
+                        <input id="chat-input" type="text" placeholder="Type to earn ₱0.02..." class="flex-1 bg-white/5 border border-white/10 rounded-xl p-3 outline-none">
+                        <button onclick="sendChatMessage()" class="bg-blue-600 px-6 rounded-xl font-bold">SEND</button>
                     </div>
                 </div>
-                
-                <div class="glass p-4 rounded-2xl">
-                    <h3 class="text-xs font-bold text-gray-400 mb-3 uppercase">Referral Stats</h3>
-                    <div class="flex justify-between items-center mb-2">
-                        <span>Total Referrals</span>
-                        <span id="p-ref-count" class="font-bold text-cyan-400">0</span>
+            </div>
+        </section>
+
+        <!-- LEADERBOARD TAB -->
+        <section id="leaderboard" class="tab-content">
+            <div class="glass rounded-3xl overflow-hidden">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-white/10 text-[10px] uppercase">
+                        <tr><th class="p-4">Rank</th><th>User</th><th class="p-4 text-right">Weekly Earnings</th></tr>
+                    </thead>
+                    <tbody id="leader-table">
+                        <!-- Rankings -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- PROFILE TAB -->
+        <section id="profile" class="tab-content">
+            <div id="profile-card" class="glass rounded-3xl p-6 mb-4">
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center text-2xl font-bold" id="prof-initial">U</div>
+                    <div>
+                        <h3 id="prof-name" class="font-bold text-lg">---</h3>
+                        <p id="prof-username" class="text-xs opacity-50">@---</p>
                     </div>
-                    <div class="flex gap-2">
-                        <code id="p-ref-code" class="flex-1 bg-black/40 p-2 rounded text-center text-xs">----</code>
-                        <button onclick="copyRef()" class="bg-cyan-600 px-4 rounded text-xs">Copy</button>
-                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3 mb-6">
+                    <div class="bg-white/5 p-3 rounded-xl"><p class="text-[10px] opacity-50">Daily Ads</p><p id="stat-daily" class="font-bold">0</p></div>
+                    <div class="bg-white/5 p-3 rounded-xl"><p class="text-[10px] opacity-50">Weekly Ads</p><p id="stat-weekly" class="font-bold">0</p></div>
+                    <div class="bg-white/5 p-3 rounded-xl"><p class="text-[10px] opacity-50">Total Referrals</p><p id="stat-refs" class="font-bold">0</p></div>
+                    <div class="bg-white/5 p-3 rounded-xl"><p class="text-[10px] opacity-50">Overall Ads</p><p id="stat-total" class="font-bold">0</p></div>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="startPrivateChat()" class="flex-1 bg-white text-black py-3 rounded-xl font-bold text-sm">MESSAGE USER</button>
+                    <button onclick="openAdmin()" class="bg-white/10 px-4 rounded-xl">⚙️</button>
                 </div>
             </div>
         </section>
     </main>
 
-    <!-- Navigation -->
-    <nav class="fixed bottom-0 left-0 right-0 glass h-16 flex justify-around items-center border-t border-cyan-500/30 z-50">
-        <button onclick="switchTab('home')" class="nav-btn active flex flex-col items-center"><span class="text-[10px] font-bold">EARN</span></button>
-        <button onclick="switchTab('chat')" class="nav-btn flex flex-col items-center"><span class="text-[10px] font-bold">CHAT</span></button>
-        <button onclick="switchTab('leaderboard')" class="nav-btn flex flex-col items-center"><span class="text-[10px] font-bold">TOP</span></button>
-        <button onclick="switchTab('profile')" class="nav-btn flex flex-col items-center"><span class="text-[10px] font-bold">PROFILE</span></button>
+    <!-- Bottom Nav -->
+    <nav class="fixed bottom-0 left-0 right-0 h-20 glass flex justify-around items-center px-4 border-t border-white/10 z-50">
+        <button onclick="switchTab('earn')" class="nav-btn flex flex-col items-center gap-1 active"><span class="text-[10px] font-bold">EARN</span></button>
+        <button onclick="switchTab('chat')" class="nav-btn flex flex-col items-center gap-1"><span class="text-[10px] font-bold">CHAT</span></button>
+        <button onclick="switchTab('leaderboard')" class="nav-btn flex flex-col items-center gap-1"><span class="text-[10px] font-bold">TOP</span></button>
+        <button onclick="switchTab('profile')" class="nav-btn flex flex-col items-center gap-1"><span class="text-[10px] font-bold">PROFILE</span></button>
     </nav>
+
+    <div id="reward-layer"></div>
 
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
