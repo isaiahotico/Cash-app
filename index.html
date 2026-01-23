@@ -1,4 +1,4 @@
-
+Welcome
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,43 +7,39 @@
     <title>🔰💎📄PAPERHOUSE INC CHAT📄💎🔰</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     
-    <!-- Popunder Ad -->
-    <script>(function(s){s.dataset.zone='10049581',s.src='https://al5sm.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
-    
     <!-- Rewarded Interstitial SDKs -->
     <script src='//libtl.com/sdk.js' data-zone='10337853' data-sdk='show_10337853'></script>
     <script src='//libtl.com/sdk.js' data-zone='10337795' data-sdk='show_10337795'></script>
     <script src='//libtl.com/sdk.js' data-zone='10276123' data-sdk='show_10276123'></script>
 
     <style>
-        :root { --p-gold: #ffd700; --p-blue: #0088cc; --bg-dark: #0f172a; }
-        body { margin: 0; font-family: 'Segoe UI', sans-serif; transition: 0.3s; min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
+        :root { --gold: #ffd700; --blue: #0088cc; --dark: #0f172a; }
+        body { margin: 0; font-family: sans-serif; transition: 0.3s; min-height: 100vh; display: flex; flex-direction: column; }
         .bricks { background-image: linear-gradient(335deg, #333 23px, transparent 23px), linear-gradient(155deg, #222 23px, transparent 23px), linear-gradient(335deg, #333 23px, transparent 23px), linear-gradient(155deg, #222 23px, transparent 23px); background-size: 58px 58px; background-position: 0px 2px, 4px 35px, 29px 31px, 34px 6px; }
         
-        header { background: #000; color: #fff; padding: 15px; text-align: center; border-bottom: 2px solid var(--p-gold); cursor: pointer; }
-        .user-info { display: flex; justify-content: space-between; background: #1e293b; color: white; padding: 10px; font-weight: bold; font-size: 14px; }
+        header { background: #000; color: #fff; padding: 15px; text-align: center; border-bottom: 2px solid var(--gold); }
+        .top-bar { display: flex; justify-content: space-between; background: #1e293b; color: #fff; padding: 10px; font-weight: bold; font-size: 14px; }
         
-        /* Native Ads Card */
-        #native-ads-card { background: #fff; margin: 10px; padding: 10px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center; min-height: 100px; }
-        
-        #chat-container { flex: 1; height: 350px; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
-        .msg { background: rgba(255,255,255,0.9); padding: 8px; border-radius: 12px; max-width: 80%; font-size: 14px; border: 1px solid #ddd; }
-        .msg.me { align-self: flex-end; background: var(--p-blue); color: #fff; }
+        /* AD BUTTON */
+        .ad-trigger-btn { background: linear-gradient(to right, #f59e0b, #ef4444); color: white; border: none; padding: 15px; width: 90%; margin: 10px auto; border-radius: 10px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
 
-        .input-bar { padding: 10px; background: #fff; display: flex; gap: 5px; border-top: 1px solid #ddd; }
+        #chat-window { flex: 1; height: 300px; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+        .msg { background: rgba(255,255,255,0.9); padding: 10px; border-radius: 10px; max-width: 80%; font-size: 14px; color: #000; }
+        .msg.me { align-self: flex-end; background: var(--blue); color: #fff; }
 
-        input { flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 20px; outline: none; }
-        .btn-send { background: var(--p-blue); color: #fff; border: none; padding: 0 20px; border-radius: 20px; font-weight: bold; }
+        .input-area { padding: 10px; background: #fff; display: flex; gap: 5px; }
+        input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
+        .btn-send { background: var(--blue); color: white; border: none; padding: 10px 15px; border-radius: 5px; font-weight: bold; }
 
-        .section-card { background: #1e293b; color: white; margin: 10px; padding: 15px; border-radius: 10px; }
-        table { width: 100%; font-size: 11px; border-collapse: collapse; margin-top: 10px; }
+        .card { background: #1e293b; color: white; margin: 10px; padding: 15px; border-radius: 10px; }
+
+        table { width: 100%; font-size: 12px; border-collapse: collapse; margin-top: 10px; }
         th, td { border-bottom: 1px solid #334155; padding: 8px; text-align: left; }
         
-        /* Leaderboard */
-        .rank-gold { color: var(--p-gold); font-weight: bold; }
-
         #owner-panel { display: none; position: fixed; top: 0; left:0; width: 100%; height: 100%; background: #000; z-index: 999; overflow-y: auto; color: #fff; padding: 20px; box-sizing: border-box; }
-        footer { background: #000; color: #fff; text-align: center; padding: 15px; font-size: 11px; margin-top: auto; }
+        footer { background: #000; color: #fff; text-align: center; padding: 10px; font-size: 11px; margin-top: auto; }
+        
+        #native-container { margin-top: 10px; min-height: 50px; background: rgba(255,255,255,0.1); border-radius: 5px; padding: 5px; }
     </style>
 </head>
 <body id="bgBody" class="bricks" onclick="changeBg(event)">
@@ -52,60 +48,57 @@
     🔰💎📄PAPERHOUSE INC CHAT📄💎🔰
 </header>
 
-<div class="user-info">
-    <span>👤 <span id="userIdDisplay">Loading...</span></span>
-    <span style="color:var(--p-gold)">₱<span id="balanceDisplay">0.000</span></span>
+<div class="top-bar">
+    <span id="userDisplay">Loading...</span>
+    <span style="color:var(--gold)">₱<span id="balDisplay">0.000</span></span>
 </div>
 
-<!-- Native Ads Card (Refreshed every 30s) -->
-<div id="native-ads-card">
-    <small>Sponsored Content</small>
-    <div id="native-ad-container">
-        <!-- Zone 10109465 will render here -->
-        <script>(function(s){s.dataset.zone='10109465',s.src='https://groleegni.net/vignette.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
-    </div>
+<!-- ADS ACTION BUTTON -->
+<button class="ad-trigger-btn" onclick="triggerManualAds()">💎 LOAD POPUNDER & NATIVE ADS 💎</button>
+
+<div id="native-container">
+    <small style="color:#aaa">Native ads will appear here when button clicked...</small>
 </div>
 
-<div id="chat-container"></div>
+<div id="chat-window"></div>
 
-<div class="input-bar">
-    <input type="text" id="msgInput" placeholder="Message earns ₱0.015...">
+<div class="input-area">
+    <input type="text" id="chatInput" placeholder="Message earns ₱0.015...">
     <button class="btn-send" onclick="sendMessage()">SEND</button>
 </div>
 
-<div class="section-card">
-    <h3>🏆 Weekly Leaderboard</h3>
-    <table id="leaderboardTable">
-        <thead><tr><th>Rank</th><th>User</th><th>Total Earned</th></tr></thead>
+<div class="card">
+    <h3>🏆 Weekly Top Earners</h3>
+    <table id="leaderTable">
+        <thead><tr><th>Rank</th><th>User</th><th>Earned</th></tr></thead>
         <tbody></tbody>
     </table>
 </div>
 
-<div class="section-card">
-    <h3>📤 GCash Withdrawal (Min: 0.015)</h3>
-    <input id="gcName" placeholder="GCash Name" style="width:90%; margin-bottom:5px; padding:8px;">
-    <input id="gcNum" placeholder="GCash Number" style="width:90%; margin-bottom:5px; padding:8px;">
-    <input id="withdrawAmt" type="number" placeholder="Amount" style="width:90%; margin-bottom:5px; padding:8px;">
-    <button onclick="requestWithdraw()" style="background: #22c55e; color:white; width:95%; padding:10px; border-radius:5px; border:none; font-weight:bold;">Request GCash</button>
+<div class="card">
+    <h3>📤 GCash Withdrawal (Min 0.015)</h3>
+    <input id="gcashName" placeholder="GCash Name" style="width:94%; margin-bottom:5px; padding:8px;">
+    <input id="gcashNum" placeholder="GCash Number" style="width:94%; margin-bottom:5px; padding:8px;">
+    <input id="withdrawAmt" type="number" placeholder="Amount" style="width:94%; margin-bottom:5px; padding:8px;">
+    <button onclick="requestWithdraw()" style="background:#22c55e; color:white; width:100%; padding:10px; border-radius:5px; border:none; font-weight:bold;">Request GCash</button>
     
-    <h4>My History</h4>
-    <table id="myWithdrawals">
+    <h4>My Withdrawals</h4>
+    <table id="myHistory">
         <thead><tr><th>Amount</th><th>Status</th><th>Note</th></tr></thead>
         <tbody></tbody>
     </table>
 </div>
 
-<!-- Owner Dashboard -->
 <div id="owner-panel">
-    <button onclick="toggleOwner()" style="background:red; color:white; padding:10px;">Close Panel</button>
+    <button onclick="toggleOwner()" style="background:red; color:white; border:none; padding:10px;">EXIT</button>
     <h2>Owner Dashboard</h2>
-    <div id="adminAuth">
+    <div id="adminLogin">
         <input type="password" id="adminPass" placeholder="Enter Password">
         <button onclick="loginAdmin()">Login</button>
     </div>
     <div id="adminContent" style="display:none">
-        <h3>Pending Withdrawals</h3>
-        <table id="adminWithdrawalTable">
+        <h3>Pending Tasks</h3>
+        <table id="adminTable">
             <thead><tr><th>User</th><th>GCash</th><th>Amt</th><th>Action</th></tr></thead>
             <tbody></tbody>
         </table>
@@ -113,22 +106,20 @@
 </div>
 
 <footer>
-    PAPERHOUSE INC | <span id="clock"></span> | otico.isai2@gmail.com
+    PAPERHOUSE INC | <span id="timeClock"></span> | otico.isai2@gmail.com
 </footer>
 
-<script type="module" src="a
-
-pp.js"></script>
+<script type="module" src="app.js"></script>
 <script>
-    const colors = ["pink", "green", "blue", "red", "violet", "yellow", "yellowgreen", "orange", "white", "cyan", "brown", "bricks"];
-    let cIdx = 0;
+    const bgColors = ["pink", "green", "blue", "red", "violet", "yellow", "yellowgreen", "orange", "white", "cyan", "brown", "bricks"];
+    let colorPointer = 0;
     function changeBg(e) {
         if(e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
         const b = document.getElementById('bgBody');
-        const c = colors[cIdx];
+        const c = bgColors[colorPointer];
         b.className = (c === 'bricks') ? 'bricks' : '';
         b.style.backgroundColor = (c === 'bricks') ? 'transparent' : c;
-        cIdx = (cIdx + 1) % colors.length;
+        colorPointer = (colorPointer + 1) % bgColors.length;
     }
 </script>
 </body>
