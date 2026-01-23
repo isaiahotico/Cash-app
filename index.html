@@ -1,126 +1,54 @@
-Welcome
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🔰💎📄PAPERHOUSE INC CHAT📄💎🔰</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    
-    <!-- Rewarded Interstitial SDKs -->
-    <script src='//libtl.com/sdk.js' data-zone='10337853' data-sdk='show_10337853'></script>
-    <script src='//libtl.com/sdk.js' data-zone='10337795' data-sdk='show_10337795'></script>
+    <title>Peso Rewards - Earn by Watching</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f4f7f6; font-family: 'Segoe UI', sans-serif; }
+        .reward-card { background: white; border-radius: 15px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-top: 50px; }
+        .balance-box { font-size: 2.5rem; font-weight: bold; color: #28a745; }
+        .native-ad-container { margin: 20px 0; min-height: 250px; border: 1px dashed #ccc; display: flex; align-items: center; justify-content: center; background: #fff; }
+        .btn-reward { padding: 15px 30px; font-size: 1.2rem; border-radius: 50px; transition: 0.3s; }
+    </style>
+
+    <!-- Monetag Rewarded SDK -->
     <script src='//libtl.com/sdk.js' data-zone='10276123' data-sdk='show_10276123'></script>
 
-    <style>
-        :root { --gold: #ffd700; --blue: #0088cc; --dark: #0f172a; }
-        body { margin: 0; font-family: sans-serif; transition: 0.3s; min-height: 100vh; display: flex; flex-direction: column; }
-        .bricks { background-image: linear-gradient(335deg, #333 23px, transparent 23px), linear-gradient(155deg, #222 23px, transparent 23px), linear-gradient(335deg, #333 23px, transparent 23px), linear-gradient(155deg, #222 23px, transparent 23px); background-size: 58px 58px; background-position: 0px 2px, 4px 35px, 29px 31px, 34px 6px; }
-        
-        header { background: #000; color: #fff; padding: 15px; text-align: center; border-bottom: 2px solid var(--gold); }
-        .top-bar { display: flex; justify-content: space-between; background: #1e293b; color: #fff; padding: 10px; font-weight: bold; font-size: 14px; }
-        
-        /* AD BUTTON */
-        .ad-trigger-btn { background: linear-gradient(to right, #f59e0b, #ef4444); color: white; border: none; padding: 15px; width: 90%; margin: 10px auto; border-radius: 10px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
-
-        #chat-window { flex: 1; height: 300px; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
-        .msg { background: rgba(255,255,255,0.9); padding: 10px; border-radius: 10px; max-width: 80%; font-size: 14px; color: #000; }
-        .msg.me { align-self: flex-end; background: var(--blue); color: #fff; }
-
-        .input-area { padding: 10px; background: #fff; display: flex; gap: 5px; }
-        input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
-        .btn-send { background: var(--blue); color: white; border: none; padding: 10px 15px; border-radius: 5px; font-weight: bold; }
-
-        .card { background: #1e293b; color: white; margin: 10px; padding: 15px; border-radius: 10px; }
-
-        table { width: 100%; font-size: 12px; border-collapse: collapse; margin-top: 10px; }
-        th, td { border-bottom: 1px solid #334155; padding: 8px; text-align: left; }
-        
-        #owner-panel { display: none; position: fixed; top: 0; left:0; width: 100%; height: 100%; background: #000; z-index: 999; overflow-y: auto; color: #fff; padding: 20px; box-sizing: border-box; }
-        footer { background: #000; color: #fff; text-align: center; padding: 10px; font-size: 11px; margin-top: auto; }
-        
-        #native-container { margin-top: 10px; min-height: 50px; background: rgba(255,255,255,0.1); border-radius: 5px; padding: 5px; }
-    </style>
+    <!-- Monetag Popunder -->
+    <script>(function(s){s.dataset.zone='10049581',s.src='https://al5sm.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
 </head>
-<body id="bgBody" class="bricks" onclick="changeBg(event)">
+<body>
 
-<header onclick="toggleOwner()">
-    🔰💎📄PAPERHOUSE INC CHAT📄💎🔰
-</header>
+<div class="container text-center">
+    <div class="row justify-content-center">
+        <div class="col-md-6 reward-card">
+            <h2 class="mb-4">Peso Reward App</h2>
+            
+            <p class="text-muted">Your Current Balance:</p>
+            <div class="balance-box mb-4">₱ <span id="userBalance">0.00</span></div>
 
-<div class="top-bar">
-    <span id="userDisplay">Loading...</span>
-    <span style="color:var(--gold)">₱<span id="balDisplay">0.000</span></span>
-</div>
+            <div class="d-grid gap-3">
+                <button id="btnWatchAd" class="btn btn-primary btn-reward">Watch Ad (Earn ₱0.50)</button>
+                <button id="btnInApp" class="btn btn-outline-secondary">Show Interstitial</button>
+            </div>
 
-<!-- ADS ACTION BUTTON -->
-<button class="ad-trigger-btn" onclick="triggerManualAds()">💎 LOAD POPUNDER & NATIVE ADS 💎</button>
+            <hr>
 
-<div id="native-container">
-    <small style="color:#aaa">Native ads will appear here when button clicked...</small>
-</div>
-
-<div id="chat-window"></div>
-
-<div class="input-area">
-    <input type="text" id="chatInput" placeholder="Message earns ₱0.015...">
-    <button class="btn-send" onclick="sendMessage()">SEND</button>
-</div>
-
-<div class="card">
-    <h3>🏆 Weekly Top Earners</h3>
-    <table id="leaderTable">
-        <thead><tr><th>Rank</th><th>User</th><th>Earned</th></tr></thead>
-        <tbody></tbody>
-    </table>
-</div>
-
-<div class="card">
-    <h3>📤 GCash Withdrawal (Min 0.015)</h3>
-    <input id="gcashName" placeholder="GCash Name" style="width:94%; margin-bottom:5px; padding:8px;">
-    <input id="gcashNum" placeholder="GCash Number" style="width:94%; margin-bottom:5px; padding:8px;">
-    <input id="withdrawAmt" type="number" placeholder="Amount" style="width:94%; margin-bottom:5px; padding:8px;">
-    <button onclick="requestWithdraw()" style="background:#22c55e; color:white; width:100%; padding:10px; border-radius:5px; border:none; font-weight:bold;">Request GCash</button>
-    
-    <h4>My Withdrawals</h4>
-    <table id="myHistory">
-        <thead><tr><th>Amount</th><th>Status</th><th>Note</th></tr></thead>
-        <tbody></tbody>
-    </table>
-</div>
-
-<div id="owner-panel">
-    <button onclick="toggleOwner()" style="background:red; color:white; border:none; padding:10px;">EXIT</button>
-    <h2>Owner Dashboard</h2>
-    <div id="adminLogin">
-        <input type="password" id="adminPass" placeholder="Enter Password">
-        <button onclick="loginAdmin()">Login</button>
-    </div>
-    <div id="adminContent" style="display:none">
-        <h3>Pending Tasks</h3>
-        <table id="adminTable">
-            <thead><tr><th>User</th><th>GCash</th><th>Amt</th><th>Action</th></tr></thead>
-            <tbody></tbody>
-        </table>
+            <!-- Monetag Native Ad Placement -->
+            <p class="text-muted small">Sponsored Content</p>
+            <div id="native-ad-container" class="native-ad-container">
+                <!-- Native Ad Script -->
+                <script>(function(s){s.dataset.zone='10109465',s.src='https://groleegni.net/vignette.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
+            </div>
+            
+            <p id="statusMsg" class="mt-3 small text-info"></p>
+        </div>
     </div>
 </div>
 
-<footer>
-    PAPERHOUSE INC | <span id="timeClock"></span> | otico.isai2@gmail.com
-</footer>
-
+<!-- Firebase and App Logic -->
 <script type="module" src="app.js"></script>
-<script>
-    const bgColors = ["pink", "green", "blue", "red", "violet", "yellow", "yellowgreen", "orange", "white", "cyan", "brown", "bricks"];
-    let colorPointer = 0;
-    function changeBg(e) {
-        if(e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
-        const b = document.getElementById('bgBody');
-        const c = bgColors[colorPointer];
-        b.className = (c === 'bricks') ? 'bricks' : '';
-        b.style.backgroundColor = (c === 'bricks') ? 'transparent' : c;
-        colorPointer = (colorPointer + 1) % bgColors.length;
-    }
-</script>
 </body>
 </html>
