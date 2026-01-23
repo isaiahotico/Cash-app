@@ -1,171 +1,104 @@
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, doc, setDoc, getDoc, addDoc, collection, query, where, orderBy, limit, onSnapshot, updateDoc, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, increment, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
+// Firebase Configuration
 const firebaseConfig = {
     apiKey: "AIzaSyDMGU5X7BBp-C6tIl34Uuu5N9MXAVFTn7c",
     authDomain: "paper-house-inc.firebaseapp.com",
-    projectId: "paper-house-inc"
+    projectId: "paper-house-inc",
+    storageBucket: "paper-house-inc.firebasestorage.app",
+    messagingSenderId: "658389836376",
+    appId: "1:658389836376:web:2ab1e2743c593f4ca8e02d"
 };
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);
 
-// Telegram Logic
-const tg = window.Telegram.WebApp;
-tg.ready();
-tg.expand();
-const user = tg.initDataUnsafe.user;
-const username = user ? (user.username || `user_${user.id}`) : "Guest_" + Math.floor(Math.random()*999);
-document.getElementById("userDisplay").innerText = "👤 " + username;
+let currentUser = null;
+const REWARD_AMOUNT = 0.50; // Amount in Peso per ad
 
-const userRef = doc(db, "users", username);
-let myBalance = 0;
+// Elements
+const balanceDisplay = document.getElementById('userBalance');
+const btnWatchAd = document.getElementById('btnWatchAd');
+const btnInApp = document.getElementById('btnInApp');
+const statusMsg = document.getElementById('statusMsg');
 
-// Balance Listener
-onSnapshot(userRef, (snap) => {
-    if (snap.exists()) {
-        myBalance = snap.data().balance || 0;
-        document.getElementById("balDisplay").innerText = myBalance.toFixed(3);
-    } else {
-        setDoc(userRef, { balance: 0, totalEarned: 0, user: username }, { merge: true });
+// 1. Sign in User Anonymously
+signInAnonymously(auth).catch((error) => {
+    console.error("Auth Error", error);
+    statusMsg.innerText = "Error signing in. Check connection.";
+});
+
+// 2. Listen for Auth State
+onAuthStateChanged(auth, (user) => {
+    if (user) {
+        currentUser = user;
+        setupUserData(user.uid);
     }
 });
 
-// Load Global Chat
-const chatQ = query(collection(db, "chat_messages"), orderBy("timestamp", "desc"), limit(50));
-onSnapshot(chatQ, (snap) => {
-    const win = document.getElementById("chat-window");
-    const cutoff = Date.now() - (3 * 24 * 60 * 60 * 1000);
-    win.innerHTML = snap.docs
-        .filter(d => d.data().timestamp?.toMillis() > cutoff)
-        .reverse()
-        .map(d => `<div class="msg ${d.data().user === username ? 'me' : ''}"><b>${d.data().user}:</b><br>${d.data().text}</div>`)
-        .join("");
-    win.scrollTop = win.scrollHeight;
-});
+// 3. Setup or Sync User Data from Firestore
+function setupUserData(uid) {
+    const userRef = doc(db, "users", uid);
 
-// Manual Ad Trigger (Popunder + Native)
-window.triggerManualAds = () => {
-    // 1. Trigger Popunder
-    const popScript = document.createElement('script');
-    popScript.dataset.zone = '10049581';
-    popScript.src = 'https://al5sm.com/tag.min.js';
-    document.body.appendChild(popScript);
+    // Initial check/creation
+    getDoc(userRef).then((docSnap) => {
+        if (!docSnap.exists()) {
+            setDoc(userRef, { balance: 0.00, adsWatched: 0 });
+        }
+    });
 
-    // 2. Trigger Native Ads
-    const nativeContainer = document.getElementById("native-container");
-    nativeContainer.innerHTML = '<small style="color:yellow">Native Ads Loaded!</small>';
-    const natScript = document.createElement('script');
-    natScript.dataset.zone = '10109465';
-    natScript.src = 'https://groleegni.net/vignette.min.js';
-    nativeContainer.appendChild(natScript);
-    
-    alert("Ads activated! Please click the ads to support us.");
-};
+    // Real-time listener for balance updates
+    onSnapshot(userRef, (doc) => {
+        if (doc.exists()) {
+            balanceDisplay.innerText = doc.data().balance.toFixed(2);
+        }
+    });
+}
 
-// Interstitial Ads
-async function runInterstitial() {
+// 4. Function to Reward User in Database
+async function giveReward() {
+    if (!currentUser) return;
+    const userRef = doc(db, "users", currentUser.uid);
     try {
-        await show_10337853();
-        await show_10337795();
-        await show_10276123();
-        return true;
+        await updateDoc(userRef, {
+            balance: increment(REWARD_AMOUNT),
+            adsWatched: increment(1)
+        });
+        statusMsg.innerText = "Success! ₱0.50 added to your balance.";
+        setTimeout(() => { statusMsg.innerText = ""; }, 3000);
     } catch (e) {
-        alert("Please complete all 3 ads to send message and earn.");
-        return false;
+        console.error("Reward Error", e);
     }
 }
 
-// Send Chat
-window.sendMessage = async () => {
-    const input = document.getElementById("chatInput");
-    const text = input.value.trim();
-    if (!text) return;
-
-    const last = localStorage.getItem("lastMsg") || 0;
-    if (Date.now() - last < 180000) return alert("Cooldown: 3 minutes.");
-
-    const adStatus = await runInterstitial();
-    if (adStatus) {
-        await addDoc(collection(db, "chat_messages"), { user: username, text, timestamp: serverTimestamp() });
-        await updateDoc(userRef, { balance: increment(0.015), totalEarned: increment(0.015) });
-        localStorage.setItem("lastMsg", Date.now());
-        input.value = "";
-    }
-};
-
-// Leaderboard
-onSnapshot(query(collection(db, "users"), orderBy("totalEarned", "desc"), limit(10)), (snap) => {
-    document.querySelector("#leaderTable tbody").innerHTML = snap.docs.map((d, i) => `
-        <tr><td>#${i + 1}</td><td>${d.data().user}</td><td>₱${(d.data().totalEarned || 0).toFixed(3)}</td></tr>
-    `).join("");
-});
-
-// Withdrawal
-window.requestWithdraw = async () => {
-    const name = document.getElementById("gcashName").value;
-    const num = document.getElementById("gcashNum").value;
-    const amt = parseFloat(document.getElementById("withdrawAmt").value);
-
-    if (amt < 0.015) return alert("Min 0.015 PHP");
-    if (amt > myBalance) return alert("Insufficient balance");
-
-    await updateDoc(userRef, { balance: increment(-amt) });
-    await addDoc(collection(db, "withdrawals"), {
-        user: username, gcashName: name, gcashNumber: num, amount: amt, status: "pending", timestamp: serverTimestamp()
+// 5. Monetag Ad Triggers
+btnWatchAd.onclick = () => {
+    statusMsg.innerText = "Loading Ad...";
+    
+    // Rewarded Popup Format
+    show_10276123('pop').then(() => {
+        // This executes when the user watches or closes the ad successfully
+        giveReward();
+    }).catch(e => {
+        statusMsg.innerText = "Ad failed to load. Try again later.";
+        console.error("Ad Error:", e);
     });
-    alert("Request submitted!");
 };
 
-// History
-onSnapshot(query(collection(db, "withdrawals"), where("user", "==", username), orderBy("timestamp", "desc"), limit(5)), (snap) => {
-    document.querySelector("#myHistory tbody").innerHTML = snap.docs.map(d => `
-        <tr><td>₱${d.data().amount.toFixed(3)}</td><td>${d.data().status}</td><td>${d.data().note || '-'}</td></tr>
-    `).join("");
-});
-
-// Admin Dashboard
-window.toggleOwner = () => {
-    const p = document.getElementById("owner-panel");
-    p.style.display = (p.style.display === "block") ? "none" : "block";
-};
-
-window.loginAdmin = () => {
-    if (document.getElementById("adminPass").value === "Propetas6") {
-        document.getElementById("adminLogin").style.display = "none";
-        document.getElementById("adminContent").style.display = "block";
-        loadAdmin();
-    } else {
-        alert("Wrong Password");
-    }
-};
-
-function loadAdmin() {
-    onSnapshot(query(collection(db, "withdrawals"), where("status", "==", "pending")), (snap) => {
-        document.getElementById("adminTable").innerHTML = snap.docs.map(d => `
-            <tr>
-                <td>${d.data().user}</td>
-                <td>${d.data().gcashNumber}</td>
-                <td>₱${d.data().amount}</td>
-                <td>
-                    <button onclick="approve('${d.id}')" style="background:green;color:white">Approve</button>
-                    <button onclick="reject('${d.id}')" style="background:red;color:white">Reject</button>
-                </td>
-            </tr>
-        `).join("");
+btnInApp.onclick = () => {
+    // In-App Interstitial Format (Auto-managed frequency)
+    show_10276123({
+        type: 'inApp',
+        inAppSettings: {
+            frequency: 2,
+            capping: 0.1,
+            interval: 30,
+            timeout: 5,
+            everyPage: false
+        }
     });
-}
-
-window.approve = async (id) => {
-    await updateDoc(doc(db, "withdrawals", id), { status: "approved", note: "Sent via GCash" });
 };
-
-window.reject = async (id) => {
-    const snap = await getDoc(doc(db, "withdrawals", id));
-    const data = snap.data();
-    await updateDoc(doc(db, "users", data.user), { balance: increment(data.amount) }); // Refund
-    await updateDoc(doc(db, "withdrawals", id), { status: "rejected", note: "Rejected by owner" });
-};
-
-setInterval(() => document.getElementById("timeClock").innerText = new Date().toLocaleString(), 1000);
