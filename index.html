@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PAPERHOUSE INC | PREMIUM ADS</title>
+    <title>PAPERHOUSE INC | V3 PREMIUM</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
@@ -19,182 +18,132 @@
         .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.05); }
         .nav-active { color: #fbbf24; border-bottom: 3px solid #fbbf24; }
         .cooldown-active { filter: grayscale(1); pointer-events: none; opacity: 0.5; }
-        .chat-bubble { background: #1e293b; padding: 12px; border-radius: 15px; max-width: 85%; }
+        .chat-bubble { background: #1e293b; padding: 12px; border-radius: 15px; max-width: 85%; margin-bottom: 8px; }
         .my-chat { background: #2563eb; margin-left: auto; }
         .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
     </style>
 </head>
 <body class="select-none">
 
-    <!-- Auth Screen -->
     <div id="login-screen" class="fixed inset-0 z-[100] bg-slate-950 flex flex-col items-center justify-center p-8">
-        <div class="w-20 h-20 gold-gradient rounded-3xl flex items-center justify-center mb-6 shadow-2xl shadow-yellow-500/20">
-            <i class="fas fa-crown text-4xl text-slate-900"></i>
-        </div>
-        <h1 class="text-3xl font-black mb-2 tracking-tight">PAPERHOUSE INC</h1>
-        <p class="text-slate-400 text-sm mb-8 text-center">Premium GCash Earning Community</p>
-        <input type="text" id="reg-name" placeholder="Desired Username" class="w-full p-4 rounded-2xl bg-slate-900 border border-slate-800 mb-4 focus:ring-2 ring-yellow-500 outline-none">
-
-        <input type="number" id="reg-gcash" placeholder="GCash Number (09...)" class="w-full p-4 rounded-2xl bg-slate-900 border border-slate-800 mb-6 focus:ring-2 ring-yellow-500 outline-none">
-        <button onclick="app.register()" class="w-full gold-gradient py-4 rounded-2xl font-bold text-slate-900 uppercase tracking-widest">Start Earning</button>
+        <h1 class="text-3xl font-black mb-6 gold-gradient bg-clip-text text-transparent">PAPERHOUSE INC</h1>
+        <input type="text" id="reg-name" placeholder="Username" class="w-full p-4 rounded-2xl bg-slate-900 border border-slate-800 mb-4 outline-none">
+        <input type="number" id="reg-gcash" placeholder="GCash (09...)" class="w-full p-4 rounded-2xl bg-slate-900 border border-slate-800 mb-6 outline-none">
+        <button onclick="app.register()" class="w-full gold-gradient py-4 rounded-2xl font-bold text-slate-900 uppercase">Start Earning</button>
     </div>
 
-    <!-- Main App -->
     <div id="app" class="hidden min-h-screen pb-28">
-        <!-- Header -->
         <header class="p-5 flex justify-between items-center sticky top-0 z-40 glass rounded-b-3xl">
-            <div>
-                <h2 id="user-display" class="font-bold text-lg text-white">---</h2>
-                <div class="flex items-center gap-2">
-                    <span class="w-2 h-2 rounded-full bg-green-500"></span>
-                    <span id="online-count" class="text-[10px] text-slate-400 font-bold uppercase">0 Online</span>
-                </div>
+            <div>                <h2 id="user-display" class="font-bold text-white">---</h2>
+                <p id="online-count" class="text-[10px] text-green-500 font-bold uppercase">0 Online</p>
             </div>
             <div class="text-right">
-                <p class="text-[10px] text-yellow-500 font-black uppercase">Current Wallet</p>
+                <p class="text-[10px] text-slate-400 font-bold">WALLET</p>
                 <h2 id="balance-display" class="text-2xl font-black">₱0.00</h2>
             </div>
         </header>
 
-        <main class="p-4 space-y-6">
-            <!-- Section: Home (Ads) -->
+        <main class="p-4 space-y-4">
+            <!-- Home Section -->
             <section id="sec-home" class="space-y-4">
-                <div class="glass rounded-[2rem] p-8 text-center relative overflow-hidden">
-                    <div class="absolute top-0 right-0 p-4"><i class="fas fa-wallet text-slate-800 text-6xl"></i></div>
-                    <p class="text-slate-400 text-xs uppercase font-bold mb-1">Available Balance</p>
-                    <h1 id="big-balance" class="text-5xl font-black text-white mb-6">₱0.00</h1>
-                    <button onclick="app.requestWithdraw()" class="w-full py-4 rounded-2xl bg-white text-black font-black uppercase text-xs tracking-widest">Withdraw via GCash</button>
+                <div class="glass rounded-[2rem] p-8 text-center">
+                    <h1 id="big-balance" class="text-5xl font-black mb-4">₱0.00</h1>
+                    <button onclick="app.requestWithdraw()" class="w-full py-3 rounded-xl bg-white text-black font-bold text-xs uppercase">Withdraw</button>
                 </div>
 
-                <!-- Ad Row 1: Regular -->
-                <div id="btn-reg" onclick="app.playSequence('regular')" class="glass p-6 rounded-3xl flex items-center gap-4 border border-white/5 active:scale-95 transition">
-                    <div class="w-12 h-12 rounded-2xl bg-blue-500/20 flex items-center justify-center text-blue-500"><i class="fas fa-play"></i></div>
-                    <div class="flex-1">
-                        <h4 class="font-bold">Standard Ads</h4>
-                        <p class="text-xs text-slate-400">Earn ₱0.015 per cycle</p>
-                    </div>
-                    <div id="timer-reg" class="hidden text-xs font-black text-blue-500 bg-blue-500/10 px-3 py-1 rounded-full">60s</div>
+                <!-- Ad Buttons -->
+                <div id="btn-reg" onclick="app.playAd('regular')" class="glass p-5 rounded-2xl flex justify-between items-center active:scale-95 transition">
+                    <div><h4 class="font-bold">Regular Ad</h4><p class="text-[10px] text-slate-400">Earn ₱0.0102</p></div>
+                    <span id="timer-reg" class="hidden text-xs text-yellow-500 font-bold">45s</span>
                 </div>
 
-                <!-- Ad Row 2: Premium (Row Sequence) -->
-                <div id="btn-prem" onclick="app.playSequence('premium')" class="glass p-6 rounded-3xl flex items-center gap-4 border border-yellow-500/20 active:scale-95 transition">
-                    <div class="w-12 h-12 rounded-2xl bg-yellow-500/20 flex items-center justify-center text-yellow-500"><i class="fas fa-gem"></i></div>
-                    <div class="flex-1">
-                        <h4 class="font-bold text-yellow-500">Premium Row Ads</h4>
-                        <p class="text-xs text-slate-400">Triple sequence ₱0.035</p>
-                    </div>
-                    <div id="timer-prem" class="hidden text-xs font-black text-yellow-500 bg-yellow-500/10 px-3 py-1 rounded-full">300s</div>
+                <div id="btn-prem" onclick="app.playAd('premium')" class="glass p-5 rounded-2xl flex justify-between items-center border-yellow-500/20 active:scale-95 transition">
+                    <div><h4 class="font-bold text-yellow-500">Premium Row</h4><p class="text-[10px] text-slate-400">Triple sequence ₱0.0102</p></div>
+                    <span id="timer-prem" class="hidden text-xs text-yellow-500 font-bold">45s</span>
                 </div>
 
-                <!-- Ad Row 3: Turbo -->
-                <div id="btn-turbo" onclick="app.playSequence('turbo')" class="gold-gradient p-6 rounded-3xl flex items-center gap-4 active:scale-95 transition">
-                    <div class="w-12 h-12 rounded-2xl bg-slate-900/20 flex items-center justify-center text-slate-900"><i class="fas fa-bolt text-xl"></i></div>
-                    <div class="flex-1 text-slate-900">
-                        <h4 class="font-bold">Turbo Sequence</h4>
-                        <p class="text-xs font-bold opacity-70">Max Earnings ₱0.055</p>
-                    </div>
-                    <span id="turbo-count" class="bg-slate-900 text-white text-[10px] px-3 py-1 rounded-full font-black">0/3</span>
+                <div id="btn-turbo" onclick="app.playAd('turbo')" class="glass p-5 rounded-2xl flex justify-between items-center active:scale-95 transition">
+                    <div><h4 class="font-bold text-blue-400">Turbo Row</h4><p class="text-[10px] text-slate-400">Triple sequence ₱0.0102</p></div>
+                    <span id="timer-turbo" class="hidden text-xs text-yellow-500 font-bold">45s</span>
+                </div>
+
+                <!-- NEW: Rewarded Pop Button -->
+                <div id="btn-pop" onclick="app.playAd('popup')" class="gold-gradient p-5 rounded-2xl flex justify-between items-center active:scale-95 transition">
+                    <div><h4 class="font-bold text-slate-900 uppercase">Rewarded Pop-Up</h4><p class="text-[10px] text-slate-800 font-bold">Random Zone ₱0.0102</p></div>
+                    <span id="timer-pop" class="hidden text-xs text-slate-900 font-bold">45s</span>
                 </div>
             </section>
 
-            <!-- Section: Profile -->
-            <section id="sec-profile" class="hidden space-y-4">
-                <div class="glass p-6 rounded-3xl text-center">
-                    <div class="w-20 h-20 mx-auto bg-slate-800 rounded-full mb-4 flex items-center justify-center border-2 border-yellow-500">
-                        <i class="fas fa-user text-3xl"></i>
-                    </div>
-                    <h3 id="prof-name" class="font-black text-xl">---</h3>
-                    <p id="prof-gcash" class="text-slate-400 text-sm">09xxxxxxxxx</p>
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="glass p-4 rounded-2xl">
-                        <p class="text-[10px] text-slate-400 font-bold uppercase">Total Views</p>
-                        <h4 id="prof-total-ads" class="text-xl font-black">0</h4>
-                    </div>
-                    <div class="glass p-4 rounded-2xl">
-                        <p class="text-[10px] text-slate-400 font-bold uppercase">Ref Earnings</p>
-                        <h4 id="prof-ref-earned" class="text-xl font-black text-green-500">₱0.00</h4>
-                    </div>
-                </div>
-                <div class="glass p-5 rounded-3xl">
-                    <p class="text-xs font-bold text-slate-400 mb-3">YOUR REFERRAL LINK (8%)</p>
-                    <div class="flex gap-2">
-                        <input id="ref-link" readonly class="flex-1 bg-slate-950 p-3 rounded-xl text-[10px] border border-white/5">
-                        <button onclick="app.copyRef()" class="bg-white text-black px-5 rounded-xl font-bold text-xs">COPY</button>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Section: Forum -->
+            <!-- Forum Section -->
             <section id="sec-topics" class="hidden space-y-4">
                 <div class="flex justify-between items-center">
-                    <h3 class="text-xl font-black">Community</h3>
-                    <button onclick="app.modal('modal-topic', true)" class="bg-yellow-500 text-black px-4 py-2 rounded-xl font-bold text-xs">+ NEW POST</button>
+                    <h3 class="text-xl font-black">Community Board</h3>
+                    <button onclick="app.modal('modal-topic', true)" class="bg-yellow-500 text-black px-4 py-2 rounded-xl text-xs font-bold">+ POST</button>
                 </div>
                 <div id="topics-list" class="space-y-3"></div>
             </section>
 
-            <!-- Section: Chat -->
-            <section id="sec-chat" class="hidden flex flex-col h-[65vh]">
-                <div id="chat-box" class="flex-1 overflow-y-auto space-y-4 mb-4 pr-2"></div>
+            <!-- Topic Detail View (Clickable target) -->
+            <section id="sec-topic-detail" class="hidden space-y-4">
+                <button onclick="app.nav('topics')" class="text-yellow-500 text-xs font-bold"><i class="fas fa-arrow-left"></i> BACK</button>
+                <div id="topic-content-detail" class="glass p-6 rounded-3xl"></div>
+            </section><!-- Online Users Section -->
+            <section id="sec-online" class="hidden space-y-4">
+                <h3 class="text-xl font-black">Users Online</h3>
+                <div id="online-list" class="grid grid-cols-2 gap-2"></div>
+            </section>
+
+            <!-- Chat Section -->
+            <section id="sec-chat" class="hidden flex flex-col h-[60vh]">
+                <div id="chat-box" class="flex-1 overflow-y-auto pr-2 mb-2"></div>
                 <div class="flex gap-2 p-2 glass rounded-2xl">
-                    <input type="text" id="chat-input" placeholder="Say something..." class="flex-1 bg-transparent p-3 outline-none text-sm">
-                    <button onclick="app.sendMessage()" class="bg-yellow-500 text-black w-12 h-12 rounded-xl flex items-center justify-center"><i class="fas fa-paper-plane"></i></button>
+                    <input type="text" id="chat-input" placeholder="Type..." class="flex-1 bg-transparent p-2 outline-none">
+                    <button onclick="app.sendMessage()" class="bg-yellow-500 text-black w-10 h-10 rounded-xl"><i class="fas fa-paper-plane"></i></button>
                 </div>
             </section>
 
-            <!-- Section: Leaderboard -->
-            <section id="sec-leaderboard" class="hidden space-y-3">
-                <h3 class="text-xl font-black">Global Rankings<
-
-/h3>
-                <div id="lb-list" class="space-y-2"></div>
-            </section>
-
-            <!-- Section: History -->
+            <!-- Withdrawal History -->
             <section id="sec-history" class="hidden space-y-3">
                 <h3 class="text-xl font-black">Withdrawal History</h3>
                 <div id="hist-list" class="space-y-2"></div>
             </section>
 
-            <!-- Section: Help -->
+            <!-- Help Section -->
             <section id="sec-help" class="hidden space-y-4">
-                <h3 class="text-xl font-black">Help & Support</h3>
-                <div class="grid gap-3">
-                    <a href="#" class="glass p-4 rounded-2xl flex items-center gap-3"><i class="fab fa-telegram text-blue-400 text-xl"></i> Telegram Group</a>
-                    <a href="#" class="glass p-4 rounded-2xl flex items-center gap-3"><i class="fab fa-facebook text-blue-600 text-xl"></i> Facebook Page</a>
+                <h3 class="text-xl font-black">Need Help?</h3>
+                <div class="glass p-6 rounded-3xl space-y-4">
+                    <p class="text-sm">For account issues, withdrawal concerns, or bugs, contact us:</p>
+                    <a href="https://t.me/PAPERHOUSE_INC" class="block p-4 bg-blue-600 rounded-xl font-bold text-center"><i class="fab fa-telegram"></i> Telegram Channel</a>
+                    <a href="#" class="block p-4 bg-blue-800 rounded-xl font-bold text-center"><i class="fab fa-facebook"></i> Facebook Support</a>
                 </div>
             </section>
 
-            <!-- Section: Admin -->
+            <!-- Admin -->
             <section id="sec-admin" class="hidden space-y-4">
-                <h3 class="text-xl font-black text-red-500 uppercase">Pending Payouts</h3>
-                <div id="admin-list" class="space-y-4"></div>
+                <h3 class="text-xl font-black text-red-500">Admin Panel</h3>
+                <div id="admin-list" class="space-y-2"></div>
             </section>
         </main>
 
-        <!-- Navbar -->
-        <nav class="fixed bottom-0 left-0 right-0 glass border-t border-white/5 flex justify-around items-center p-3 z-50 rounded-t-[2.5rem]">
-            <button onclick="app.nav('home')" class="nav-btn nav-active flex flex-col items-center"><i class="fas fa-home text-lg"></i><span class="text-[9px] mt-1">Home</span></button>
-            <button onclick="app.nav('topics')" class="nav-btn flex flex-col items-center"><i class="fas fa-users text-lg"></i><span class="text-[9px] mt-1">Forum</span></button>
-            <button onclick="app.nav('chat')" class="nav-btn flex flex-col items-center"><i class="fas fa-comment-dots text-lg"></i><span class="text-[9px] mt-1">Chat</span></button>
-            <button onclick="app.nav('leaderboard')" class="nav-btn flex flex-col items-center"><i class="fas fa-trophy text-lg"></i><span class="text-[9px] mt-1">Rank</span></button>
-            <button onclick="app.nav('profile')" class="nav-btn flex flex-col items-center"><i class="fas fa-user-circle text-lg"></i><span class="text-[9px] mt-1">Profile</span></button>
-            <button onclick="app.nav('admin')" class="nav-btn flex flex-col items-center text-slate-800"><i class="fas fa-lock"></i></button>
+        <nav class="fixed bottom-0 left-0 right-0 glass flex justify-around p-4 z-50 rounded-t-3xl">
+            <button onclick="app.nav('home')"><i class="fas fa-home"></i></button>
+            <button onclick="app.nav('topics')"><i class="fas fa-list"></i></button>
+            <button onclick="app.nav('chat')"><i class="fas fa-comment"></i></button>
+            <button onclick="app.nav('online')"><i class="fas fa-wifi"></i></button>
+            <button onclick="app.nav('history')"><i class="fas fa-clock"></i></button>
+            <button onclick="app.nav('help')"><i class="fas fa-question-circle"></i></button>
+            <button onclick="app.nav('admin')"><i class="fas fa-user-shield"></i></button>
         </nav>
     </div>
 
     <!-- Modal: New Topic -->
     <div id="modal-topic" class="modal">
-        <div class="bg-slate-900 w-full max-w-md p-6 rounded-3xl border border-white/10">
-            <h3 class="text-xl font-black mb-4">Post to Community</h3>
-            <input id="topic-title" type="text" placeholder="Subject" class="w-full bg-slate-950 p-4 rounded-xl mb-3 border border-white/5">
-            <textarea id="topic-desc" placeholder="Details..." rows="4" class="w-full bg-slate-950 p-4 rounded-xl mb-4 border border-white/5"></textarea>
+        <div class="bg-slate-900 w-full max-w-md p-6 rounded-3xl">
+            <input id="topic-title" type="text" placeholder="Subject" class="w-full bg-slate-950 p-4 rounded-xl mb-3">
+            <textarea id="topic-desc" placeholder="Message..." rows="4" class="w-full bg-slate-950 p-4 rounded-xl mb-4"></textarea>
             <div class="flex gap-2">
-                <button onclick="app.modal('modal-topic', false)" class="flex-1 bg-slate-800 py-3 rounded-xl font-bold">Cancel</button>
-                <button onclick="app.postTopic()" class="flex-1 gold-gradient py-3 rounded-xl font-bold text-slate-900">Post Now</button>
+                <button onclick="app.modal('modal-topic', false)" class="flex-1 bg-slate-800 py-3 rounded-xl">Cancel</button>
+                <button onclick="app.postTopic()" class="flex-1 gold-gradient py-3 rounded-xl text-slate-900 font-bold">Post</button>
             </div>
         </div>
     </div>
