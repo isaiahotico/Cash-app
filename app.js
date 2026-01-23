@@ -1,104 +1,164 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, doc, getDoc, setDoc, updateDoc, increment, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-// Firebase Configuration
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, doc, setDoc, getDoc, addDoc, collection, query, where, orderBy, limit, onSnapshot, updateDoc, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
 const firebaseConfig = {
     apiKey: "AIzaSyDMGU5X7BBp-C6tIl34Uuu5N9MXAVFTn7c",
     authDomain: "paper-house-inc.firebaseapp.com",
-    projectId: "paper-house-inc",
-    storageBucket: "paper-house-inc.firebasestorage.app",
-    messagingSenderId: "658389836376",
-    appId: "1:658389836376:web:2ab1e2743c593f4ca8e02d"
+    projectId: "paper-house-inc"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const auth = getAuth(app);
 
-let currentUser = null;
-const REWARD_AMOUNT = 0.50; // Amount in Peso per ad
+// Telegram Setup
+const tg = window.Telegram.WebApp;
+tg.ready();
+const user = tg.initDataUnsafe.user;
+const myUid = user ? (user.username || `id_${user.id}`) : "Guest_" + Math.random().toString(36).substr(2, 5);
+document.getElementById("nameLabel").innerText = "👤 " + myUid;
 
-// Elements
-const balanceDisplay = document.getElementById('userBalance');
-const btnWatchAd = document.getElementById('btnWatchAd');
-const btnInApp = document.getElementById('btnInApp');
-const statusMsg = document.getElementById('statusMsg');
+const myRef = doc(db, "users", myUid);
+let myBal = 0;
 
-// 1. Sign in User Anonymously
-signInAnonymously(auth).catch((error) => {
-    console.error("Auth Error", error);
-    statusMsg.innerText = "Error signing in. Check connection.";
-});
-
-// 2. Listen for Auth State
-onAuthStateChanged(auth, (user) => {
-    if (user) {
-        currentUser = user;
-        setupUserData(user.uid);
+// Balance Listener
+onSnapshot(myRef, (snap) => {
+    if (snap.exists()) {
+        myBal = snap.data().balance || 0;
+        document.getElementById("balLabel").innerText = myBal.toFixed(3);
+    } else {
+        setDoc(myRef, { balance: 0, totalEarned: 0, user: myUid }, { merge: true });
     }
 });
 
-// 3. Setup or Sync User Data from Firestore
-function setupUserData(uid) {
-    const userRef = doc(db, "users", uid);
+// Chat Sync (Real-time Firestore)
+const chatQ = query(collection(db, "chat_messages"), orderBy("timestamp", "desc"), limit(40));
+onSnapshot(chatQ, (snap) => {
+    const box = document.getElementById("chat-box");
+    box.innerHTML = snap.docs
+        .reverse()
+        .map(d => `<div class="msg ${d.data().user === myUid ? 'me' : ''}"><b>${d.data().user}</b><br>${d.data().text}</div>`)
+        .join("");
+    box.scrollTop = box.scrollHeight;
+});
 
-    // Initial check/creation
-    getDoc(userRef).then((docSnap) => {
-        if (!docSnap.exists()) {
-            setDoc(userRef, { balance: 0.00, adsWatched: 0 });
-        }
-    });
+// MULTI-AD TRIGGER (Popunder + Multiple Native)
+window.loadPremiumAds = () => {
+    // 1. Popunder
+    const pop = document.createElement('script');
+    pop.dataset.zone = '10049581';
+    pop.src = 'https://al5sm.com/tag.min.js';
+    document.body.appendChild(pop);
 
-    // Real-time listener for balance updates
-    onSnapshot(userRef, (doc) => {
-        if (doc.exists()) {
-            balanceDisplay.innerText = doc.data().balance.toFixed(2);
-        }
-    });
-}
+    // 2. Native Slot 1
+    const n1 = document.createElement('script');
+    n1.dataset.zone = '10109465';
+    n1.src = 'https://groleegni.net/vignette.min.js';
+    document.getElementById("slot1").innerHTML = "";
+    document.getElementById("slot1").appendChild(n1);
 
-// 4. Function to Reward User in Database
-async function giveReward() {
-    if (!currentUser) return;
-    const userRef = doc(db, "users", currentUser.uid);
-    try {
-        await updateDoc(userRef, {
-            balance: increment(REWARD_AMOUNT),
-            adsWatched: increment(1)
-        });
-        statusMsg.innerText = "Success! ₱0.50 added to your balance.";
-        setTimeout(() => { statusMsg.innerText = ""; }, 3000);
-    } catch (e) {
-        console.error("Reward Error", e);
-    }
-}
-
-// 5. Monetag Ad Triggers
-btnWatchAd.onclick = () => {
-    statusMsg.innerText = "Loading Ad...";
+    // 3. Backup Native Slot 2 (Loads a second instance for more revenue)
+    const n2 = document.createElement('script');
+    n2.dataset.zone = '10109465'; 
+    n2.src = 'https://groleegni.net/vignette.min.js';
+    document.getElementById("slot2").innerHTML = "";
+    document.getElementById("slot2").appendChild(n2);
     
-    // Rewarded Popup Format
-    show_10276123('pop').then(() => {
-        // This executes when the user watches or closes the ad successfully
-        giveReward();
-    }).catch(e => {
-        statusMsg.innerText = "Ad failed to load. Try again later.";
-        console.error("Ad Error:", e);
-    });
+    alert("Premium Ads Loaded! Please interact with them to support the community.");
 };
 
-btnInApp.onclick = () => {
-    // In-App Interstitial Format (Auto-managed frequency)
-    show_10276123({
-        type: 'inApp',
-        inAppSettings: {
-            frequency: 2,
-            capping: 0.1,
-            interval: 30,
-            timeout: 5,
-            everyPage: false
-        }
-    });
+// Send Message Flow
+window.processMessage = async () => {
+    const inp = document.getElementById("msgText");
+    const val = inp.value.trim();
+    if (!val) return;
+
+    const cooldown = localStorage.getItem("lastMsgTime") || 0;
+    if (Date.now() - cooldown < 180000) return alert("Please wait 3 minutes (Cooldown).");
+
+    // Rewarded Interstitials
+    try {
+        await show_10337853();
+        await show_10337795();
+        await show_10276123();
+
+        await addDoc(collection(db, "chat_messages"), { user: myUid, text: val, timestamp: serverTimestamp() });
+        await updateDoc(myRef, { balance: increment(0.015), totalEarned: increment(0.015) });
+        
+        localStorage.setItem("lastMsgTime", Date.now());
+        inp.value = "";
+    } catch (e) {
+        alert("Ads interrupted. No reward given.");
+    }
 };
+
+// Leaderboard Sync
+onSnapshot(query(collection(db, "users"), orderBy("totalEarned", "desc"), limit(10)), (snap) => {
+    document.querySelector("#rankTable tbody").innerHTML = snap.docs.map((d, i) => `
+        <tr><td>#${i + 1}</td><td>${d.data().user}</td><td>₱${(d.data().totalEarned || 0).toFixed(3)}</td></tr>
+    `).join("");
+});
+
+// Withdrawal Logic
+window.sendWithdrawal = async () => {
+    const name = document.getElementById("gcName").value;
+    const num = document.getElementById("gcNum").value;
+    const amt = parseFloat(document.getElementById("gcAmt").value);
+
+    if (amt < 0.015 || isNaN(amt)) return alert("Minimum withdrawal is 0.015 PHP");
+    if (amt > myBal) return alert("Insufficient Balance");
+
+    await updateDoc(myRef, { balance: increment(-amt) });
+    await addDoc(collection(db, "withdrawals"), {
+        user: myUid, gcashName: name, gcashNumber: num, amount: amt, status: "pending", timestamp: serverTimestamp()
+    });
+    alert("Withdrawal submitted to owner for approval.");
+};
+
+// History Listener
+onSnapshot(query(collection(db, "withdrawals"), where("user", "==", myUid), orderBy("timestamp", "desc"), limit(5)), (snap) => {
+    document.querySelector("#historyTable tbody").innerHTML = snap.docs.map(d => `
+        <tr><td>₱${d.data().amount.toFixed(3)}</td><td>${d.data().status}</td><td>${d.data().note || '-'}</td></tr>
+    `).join("");
+});
+
+// OWNER DASHBOARD LOGIC
+window.openDashboard = () => document.getElementById("owner-ui").style.display = "block";
+window.closeDashboard = () => document.getElementById("owner-ui").style.display = "none";
+
+window.verifyAdmin = () => {
+    if (document.getElementById("passInput").value === "Propetas6") {
+        document.getElementById("adminAuth").style.display = "none";
+        document.getElementById("adminArea").style.display = "block";
+        loadAdminData();
+    } else {
+        alert("Access Denied");
+    }
+};
+
+function loadAdminData() {
+    onSnapshot(query(collection(db, "withdrawals"), where("status", "==", "pending")), (snap) => {
+        document.getElementById("requestTable").innerHTML = snap.docs.map(d => `
+            <tr>
+                <td>${d.data().user}</td>
+                <td>${d.data().gcashNumber}</td>
+                <td>₱${d.data().amount}</td>
+                <td>
+                    <button onclick="updateReq('${d.id}', 'approved')" style="background:green;color:white">Approve</button>
+                    <button onclick="updateReq('${d.id}', 'rejected')" style="background:red;color:white">Reject</button>
+                </td>
+            </tr>
+        `).join("");
+    });
+}
+
+window.updateReq = async (id, stat) => {
+    const note = (stat === 'approved') ? "Sent to GCash" : prompt("Enter rejection reason:");
+    if (stat === 'rejected') {
+        const snap = await getDoc(doc(db, "withdrawals", id));
+        await updateDoc(doc(db, "users", snap.data().user), { balance: increment(snap.data().amount) });
+    }
+    await updateDoc(doc(db, "withdrawals", id), { status: stat, note: note });
+};
+
+setInterval(() => document.getElementById("liveClock").innerText = new Date().toLocaleString(), 1000);
