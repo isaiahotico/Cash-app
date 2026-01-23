@@ -1,160 +1,135 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PAPERHOUSE INC ADS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔰💎📄PAPERHOUSE INC CHAT📄💎🔰</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;900&display=swap" rel="stylesheet">
-    <script src="//libtl.com/sdk.js" data-zone="10337795" data-sdk="show_10337795"></script>
+    
+    <!-- Popunder Ad -->
+    <script>(function(s){s.dataset.zone='10049581',s.src='https://al5sm.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
+    
+    <!-- Rewarded Interstitial SDKs -->
+    <script src='//libtl.com/sdk.js' data-zone='10337853' data-sdk='show_10337853'></script>
+    <script src='//libtl.com/sdk.js' data-zone='10337795' data-sdk='show_10337795'></script>
+    <script src='//libtl.com/sdk.js' data-zone='10276123' data-sdk='show_10276123'></script>
+
     <style>
-        body { font-family: 'Outfit', sans-serif; transition: background 0.5s cubic-bezier(0.4, 0, 0.2, 1); overflow: hidden; height: 100vh; }
-        .bricks { background-image: radial-gradient(#ffffff22 1px, transparent 1px); background-size: 20px 20px; }
-        .glass { background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        .tab-content { display: none; height: calc(100vh - 180px); overflow-y: auto; padding-bottom: 20px; }
-        .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .nav-btn.active { color: #00f2ff; text-shadow: 0 0 10px #00f2ff; border-top: 2px solid #00f2ff; }
-        .reward-popup { position: fixed; pointer-events: none; z-index: 999; font-weight: 900; filter: drop-shadow(0 0 5px black); }
+        :root { --p-gold: #ffd700; --p-blue: #0088cc; --bg-dark: #0f172a; }
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; transition: 0.3s; min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
+        .bricks { background-image: linear-gradient(335deg, #333 23px, transparent 23px), linear-gradient(155deg, #222 23px, transparent 23px), linear-gradient(335deg, #333 23px, transparent 23px), linear-gradient(155deg, #222 23px, transparent 23px); background-size: 58px 58px; background-position: 0px 2px, 4px 35px, 29px 31px, 34px 6px; }
+        
+        header { background: #000; color: #fff; padding: 15px; text-align: center; border-bottom: 2px solid var(--p-gold); cursor: pointer; }
+        .user-info { display: flex; justify-content: space-between; background: #1e293b; color: white; padding: 10px; font-weight: bold; font-size: 14px; }
+        
+        /* Native Ads Card */
+        #native-ads-card { background: #fff; margin: 10px; padding: 10px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center; min-height: 100px; }
+        
+        #chat-container { flex: 1; height: 350px; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+        .msg { background: rgba(255,255,255,0.9); padding: 8px; border-radius: 12px; max-width: 80%; font-size: 14px; border: 1px solid #ddd; }
+        .msg.me { align-self: flex-end; background: var(--p-blue); color: #fff; }
+
+        .input-bar { padding: 10px; background: #fff; display: flex; gap: 5px; border-top: 1px solid #ddd; }
+
+        input { flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 20px; outline: none; }
+        .btn-send { background: var(--p-blue); color: #fff; border: none; padding: 0 20px; border-radius: 20px; font-weight: bold; }
+
+        .section-card { background: #1e293b; color: white; margin: 10px; padding: 15px; border-radius: 10px; }
+        table { width: 100%; font-size: 11px; border-collapse: collapse; margin-top: 10px; }
+        th, td { border-bottom: 1px solid #334155; padding: 8px; text-align: left; }
+        
+        /* Leaderboard */
+        .rank-gold { color: var(--p-gold); font-weight: bold; }
+
+        #owner-panel { display: none; position: fixed; top: 0; left:0; width: 100%; height: 100%; background: #000; z-index: 999; overflow-y: auto; color: #fff; padding: 20px; box-sizing: border-box; }
+        footer { background: #000; color: #fff; text-align: center; padding: 15px; font-size: 11px; margin-top: auto; }
     </style>
 </head>
-<body class="bg-slate-900 text-white bricks">
+<body id="bgBody" class="bricks" onclick="changeBg(event)">
 
-    <!-- Header Section -->
-    <header class="p-4 glass sticky top-0 z-50 flex justify-between items-center border-b border-white/10">
-        <div class="flex items-center gap-3">
-            <div id="user-pfp" class="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full flex items-center justify-center font-bold text-lg">?</div>
-            <div>
-                <h1 id="top-username" class="text-sm font-black tracking-tight">LOADING...</h1>
-                <div class="flex items-center gap-2">
-                    <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                    <span id="online-count" class="text-[10px] text-gray-400">0 Online</span>
-                </div>
-            </div>
-        </div>
-        <div class="text-right">
+<header onclick="toggleOwner()">
+    🔰💎📄PAPERHOUSE INC CHAT📄💎🔰
+</header>
 
-            <p class="text-[9px] text-cyan-400 font-bold uppercase">Balance</p>
-            <p id="balance-display" class="text-xl font-black">₱0.00</p>
-        </div>
-    </header>
+<div class="user-info">
+    <span>👤 <span id="userIdDisplay">Loading...</span></span>
+    <span style="color:var(--p-gold)">₱<span id="balanceDisplay">0.000</span></span>
+</div>
 
-    <!-- Aide Background Changer -->
-    <div class="px-4 py-2 text-center">
-        <button onclick="changeTheme()" class="text-[10px] bg-white/10 px-4 py-1 rounded-full border border-white/20 uppercase tracking-widest font-bold">
-            Change Style ✨
-        </button>
+<!-- Native Ads Card (Refreshed every 30s) -->
+<div id="native-ads-card">
+    <small>Sponsored Content</small>
+    <div id="native-ad-container">
+        <!-- Zone 10109465 will render here -->
+        <script>(function(s){s.dataset.zone='10109465',s.src='https://groleegni.net/vignette.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
     </div>
+</div>
 
-    <main id="app-body" class="p-4 h-full overflow-hidden">
-        
-        <!-- HOME / EARN -->
-        <section id="earn" class="tab-content active">
-            <div class="glass p-8 rounded-[2rem] text-center mb-6 shadow-2xl border-cyan-500/20">
-                <p class="text-xs text-gray-400 mb-1 uppercase tracking-tighter">Total Profits</p>
-                <h2 id="overall-earned" class="text-5xl font-black mb-4 tracking-tighter">₱0.00</h2>
-                <div class="h-1 w-20 bg-cyan-500 mx-auto rounded-full"></div>
-            </div>
+<div id="chat-container"></div>
 
-            <div class="grid gap-3">
-                <button onclick="triggerAdTask(1)" class="glass p-5 rounded-2xl flex justify-between items-center active:scale-95 transition">
-                    <div class="text-left">
-                        <p class="font-bold">Global Reward Ad</p>
-                        <p id="cd-1" class="text-[10px] text-cyan-400 font-bold">READY TO WATCH</p>
-                    </div>
-                    <span class="text-lg font-black text-yellow-400">₱0.02</span>
-                </button>
-            </div>
-        </section>
+<div class="input-bar">
+    <input type="text" id="msgInput" placeholder="Message earns ₱0.015...">
+    <button class="btn-send" onclick="sendMessage()">SEND</button>
+</div>
 
-        <!-- WORLD BEST CHAT -->
-        <section id="chat" class="tab-content flex flex-col">
-            <div class="glass flex-1 rounded-[2rem] flex flex-col overflow-hidden">
-                <div id="chat-display" class="flex-1 p-4 overflow-y-auto space-y-3 scroll-smooth text-sm">
-                    <!-- Messages dynamically loaded -->
-                </div>
-                <div class="p-3 bg-black/40 flex flex-col gap-2">
-                    <div class="flex gap-2">
-                        <input id="chat-msg" type="text" placeholder="Type a message..." class="flex-1 bg-white/5 border border-white/10 rounded-xl p-3 outline-none focus:border-cyan-500 transition">
-                        <button onclick="sendWorldChat()" class="bg-cyan-600 px-6 rounded-xl font-black text-xs shadow-lg shadow-cyan-500/20">SEND</button>
-                    </div>
-                    <p class="text-[9px] text-center text-gray-500">Send message + 3 Ads = ₱0.02 Reward (4m cooldown)</p>
-                </div>
-            </div>
-        </section>
+<div class="section-card">
+    <h3>🏆 Weekly Leaderboard</h3>
+    <table id="leaderboardTable">
+        <thead><tr><th>Rank</th><th>User</th><th>Total Earned</th></tr></thead>
+        <tbody></tbody>
+    </table>
+</div>
 
-        <!-- LEADERBOARD -->
-        <section id="leaderboard" class="tab-content">
-            <div class="glass rounded-[2rem] overflow-hidden">
-                <div class="p-4 bg-white/5 border-b border-white/10 flex justify-between items-center">
-                    <h3 class="font-black text-xs uppercase italic">Top Earners (Weekly)</h3>
-                    <span class="text-[9px] text-gray-500">Live Sync</span>
-                </div>
-                <div id="leader-list" class="divide-y divide-white/5">
-                    <!-- Leaderboard Rows -->
-                </div>
-            </div>
-        </section>
+<div class="section-card">
+    <h3>📤 GCash Withdrawal (Min: 0.015)</h3>
+    <input id="gcName" placeholder="GCash Name" style="width:90%; margin-bottom:5px; padding:8px;">
+    <input id="gcNum" placeholder="GCash Number" style="width:90%; margin-bottom:5px; padding:8px;">
+    <input id="withdrawAmt" type="number" placeholder="Amount" style="width:90%; margin-bottom:5px; padding:8px;">
+    <button onclick="requestWithdraw()" style="background: #22c55e; color:white; width:95%; padding:10px; border-radius:5px; border:none; font-weight:bold;">Request GCash</button>
+    
+    <h4>My History</h4>
+    <table id="myWithdrawals">
+        <thead><tr><th>Amount</th><th>Status</th><th>Note</th></tr></thead>
+        <tbody></tbody>
+    </table>
+</div>
 
-        <!-- PROFILE / WITHDRAW -->
-        <section id="profile" class="tab-content">
-            <div class="glass p-6 rounded-[2rem] mb-4 text-center">
-                <div id="p-initial" class="w-20 h-20 bg-cyan-600 rounded-full mx-auto mb-3 flex items-center justify-center text-3xl font-black">?</div>
-                <h2 id="p-full-name" class="text-xl font-black tracking-tight">---</h2>
+<!-- Owner Dashboard -->
+<div id="owner-panel">
+    <button onclick="toggleOwner()" style="background:red; color:white; padding:10px;">Close Panel</button>
+    <h2>Owner Dashboard</h2>
+    <div id="adminAuth">
+        <input type="password" id="adminPass" placeholder="Enter Password">
+        <button onclick="loginAdmin()">Login</button>
+    </div>
+    <div id="adminContent" style="display:none">
+        <h3>Pending Withdrawals</h3>
+        <table id="adminWithdrawalTable">
+            <thead><tr><th>User</th><th>GCash</th><th>Amt</th><th>Action</th></tr></thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
 
-<p id="p-handle" class="text-xs text-cyan-400 mb-4">@---</p>
-                
-                <div class="grid grid-cols-2 gap-2">
-                    <div class="bg-white/5 p-3 rounded-2xl"><p class="text-[10px] text-gray-500">Weekly Ads</p><p id="p-weekly-ads" class="font-bold">0</p></div>
-                    <div class="bg-white/5 p-3 rounded-2xl"><p class="text-[10px] text-gray-500">Total Ads</p><p id="p-total-ads" class="font-bold">0</p></div>
-                </div>
-            </div>
+<footer>
+    PAPERHOUSE INC | <span id="clock"></span> | otico.isai2@gmail.com
+</footer>
 
-            <div class="glass p-6 rounded-[2rem]">
-                <h3 class="font-black text-sm mb-4">GCASH CASHOUT</h3>
-                <input id="gcash-num" type="number" placeholder="GCash Number (09...)" class="w-full bg-white/5 rounded-xl p-3 mb-2 outline-none text-sm border border-white/5">
-                <input id="gcash-amt" type="number" placeholder="Amount (Min ₱1)" class="w-full bg-white/5 rounded-xl p-3 mb-4 outline-none text-sm border border-white/5">
-                <button onclick="requestWithdrawal()" class="w-full bg-green-600 py-3 rounded-xl font-black text-sm shadow-lg shadow-green-500/20">WITHDRAW NOW</button>
-            </div>
-            
-            <button onclick="openAdmin()" class="w-full mt-4 text-[10px] text-gray-600 uppercase font-bold tracking-widest">Admin Terminal</button>
-        </section>
+<script type="module" src="a
 
-        <!-- ADMIN PANEL (Hidden) -->
-        <section id="admin" class="tab-content">
-            <div class="glass p-4 rounded-2xl">
-                <h2 class="font-black text-lg mb-4 text-cyan-400">PENDING PAYOUTS</h2>
-                <div id="admin-withdrawals" class="space-y-4">
-                    <!-- Withdrawal cards -->
-                </div>
-            </div>
-        </section>
-
-    </main>
-
-    <!-- Nav Bar -->
-    <nav class="fixed bottom-0 left-0 right-0 h-20 glass flex justify-around items-center px-6 border-t border-white/10 z-50">
-        <button onclick="switchTab('earn')" class="nav-btn active flex flex-col items-center gap-1">
-            <span class="text-[10px] font-black uppercase">Earn</span>
-        </button>
-        <button onclick="switchTab('chat')" class="nav-btn flex flex-col items-center gap-1">
-            <span class="text-[10px] font-black uppercase">Chat</span>
-        </button>
-        <button onclick="switchTab('leaderboard')" class="nav-btn flex flex-col items-center gap-1">
-            <span class="text-[10px] font-black uppercase">Top</span>
-        </button>
-        <button onclick="switchTab('profile')" class="nav-btn flex flex-col items-center gap-1">
-            <span class="text-[10px] font-black uppercase">User</span>
-        </button>
-    </nav>
-
-    <div id="fx-layer"></div>
-
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-    <script src="app.js"></script>
+pp.js"></script>
+<script>
+    const colors = ["pink", "green", "blue", "red", "violet", "yellow", "yellowgreen", "orange", "white", "cyan", "brown", "bricks"];
+    let cIdx = 0;
+    function changeBg(e) {
+        if(e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+        const b = document.getElementById('bgBody');
+        const c = colors[cIdx];
+        b.className = (c === 'bricks') ? 'bricks' : '';
+        b.style.backgroundColor = (c === 'bricks') ? 'transparent' : c;
+        cIdx = (cIdx + 1) % colors.length;
+    }
+</script>
 </body>
 </html>
