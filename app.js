@@ -16,20 +16,19 @@ const fb = initializeApp(firebaseConfig);
 const db = getDatabase(fb);
 
 const ZONES = ['show_10276123', 'show_10337795', 'show_10337853'];
-const REWARDS = { regular: 0.015, premium: 0.035, turbo: 0.055 };
-const COOLDOWNS = { regular: 60, premium: 300 };
+const REWARD = 0.0102;
+const COOLDOWN = 45;
 
 let user = null;
 let uid = localStorage.getItem('ph_uid');
-let cd = { regular: 0, premium: 0 };
+let cd = {};
 
 const app = {
     init: async () => {
         if (!uid) {
-            uid = 'U' + Math.floor(Math.random() * 9000000);
+            uid = 'U' + Math.floor(Math.random() * 900000);
             localStorage.setItem('ph_uid', uid);
         }
-
         const snap = await get(ref(db, `users/${uid}`));
         if (snap.exists()) {
             user = snap.val();
@@ -42,14 +41,8 @@ const app = {
     register: async () => {
         const name = document.getElementById('reg-name').value.trim();
         const gcash = document.getElementById('reg-gcash').value.trim();
-        if (name.length < 3 || gcash.length < 10) return alert("Fill correctly");
-
-        const refId = new URLSearchParams(window.location.search).get('ref');
-        user = {
-            uid, username: name, gcash, balance: 0, totalAds: 0,
-            refEarned: 0, referredBy: refId || null, turboCount: 0,
-            lastTurboDate: new Date().toDateString()
-        };
+        if (name.length < 3 || gcash.length < 10) return alert("Fill all fields");
+        user = { uid, username: name, gcash, balance: 0, totalAds: 0 };
         await set(ref(db, `users/${uid}`), user);
         app.launch();
     },
@@ -58,79 +51,44 @@ const app = {
         document.getElementById('login-screen').classList.add('hidden');
         document.getElementById('app').classList.remove('hidden');
         app.sync();
-        app.nav('home');
         app.presence();
+        app.nav('home');
     },
 
     sync: () => {
         onValue(ref(db, `users/${uid}`), s => {
             user = s.val();
             document.getElementById('user-display').innerText = user.username;
-            document.getElementById('balance-display').innerText = `₱${user.balance.toFixed(2)}`;
-            document.getElementById('big-balance').innerText = `₱${user.balance.toFixed(2)}`;
-            document.getElementById('prof-name').innerText = user.username;
-            document.getElementById('prof-gcash').innerText = user.gcash;
-            document.getElementById('prof-total-ads').innerText = user.totalAds;
-            document.getElementById('prof-ref-earned').innerText = `₱${(user.refEarned || 0).toFixed(2)}`;
-            document.getElementById('ref-link').value = `${window.location.origin}?ref=${uid}`;
-            
-            const today = new Date().toDateString();
-            document.getElementById('turbo-count').innerText = (user.lastTurboDate === today ? user.turboCount : 0) + '/3';
+            document.getElementById('balance-display').innerText = `₱${user.balance.toFixed(4)}`;
+            document.getElementById('big-balance').innerText = `₱${user.balance.toFixed(4)}`;
         });
     },
 
-    playSequence: async (type) => {
+    playAd: async (type) => {
         if (cd[type] > 0) return alert(`Wait ${cd[type]}s`);
-        
-        if (type === 'turbo') {
-            const today = new Date().toDateString();
-            const count = user.lastTurboDate === today ? user.turboCount : 0;
-            if (count >= 3) return alert("Turbo Limit Reached for today!");
-        }
 
-        // ROW ADS LOGIC: Show all 3 Monetag zones in sequence
-        for (const zone of ZONES) {
-            try {
-                if (window[zone]) await window[zone]();
-            } catch (e) { console.warn("Ad skip", e); }
-        }
-
-        // Grant Reward
-        const amt = REWARDS[type];
-        const newBal = (user.balance || 0) + amt;
-        const updates = { 
-            balance: parseFloat(newBal.toFixed(4)),
-            totalAds: (user.totalAds || 0) + 1
-        };
-
-        if (type === 'turbo') {
-            const today = new Date().toDateString();
-            updates.turboCount = (user.lastTurboDate === today ? user.turboCount : 0) + 1;
-            updates.lastTurboDate = today;
-        }
-
-        await update(ref(db, `users/${uid}`), updates);
-
-        // Referral Commission (8%)
-        if (user.referredBy) {
-            const upRef = ref(db, `users/${user.referredBy}`);
-            const upSnap = await get(upRef);
-            if (upSnap.exists()) {
-                const upData = upSnap.val();
-                await update(upRef, { 
-                    balance: (upData.balance || 0) + (amt * 0.08),
-                    refEarned: (upData.refEarned || 0) + (amt * 0.08)
-                });
+        if (type === 'popup') {
+            // Randomly pick 1 zone for the Pop-up button
+            const zone = ZONES[Math.floor(Math.random() * ZONES.length)];
+            try { if (window[zone]) await window[zone](); } catch (e) {}
+        } else {
+            // Row Ads for Prem/Turbo (Sequence of 3)
+            for (const zone of ZONES) {
+                try { if (window[zone]) await window[zone](); } catch (e) {}
             }
         }
 
-        if (COOLDOWNS[type]) app.startCD(type);
+        // Grant Universal Reward
+        const newBal = (user.balance || 0) + REWARD;
+        await update(ref(db, `users/${uid}`), { balance: parseFloat(newBal.toFixed(4)), totalAds: (user.totalAds || 0) + 1 });
+        app.startCD(type);
     },
 
     startCD: (type) => {
-        cd[type] = COOLDOWNS[type];
-        const btn = document.getElementById(`btn-${type.substring(0,4)}`);
-        const lbl = document.getElementById(`timer-${type.substring(0,4)}`);
+        cd[type] = COOLDOWN;
+        const short = type.substring(0, 4);
+        const btn = document.getElementById(`btn-${short}`);
+        const lbl = document.getElementById(`timer-${short}`);
         btn.classList.add('cooldown-active');
         lbl.classList.remove('hidden');
 
@@ -147,21 +105,67 @@ const app = {
 
     nav: (id) => {
         document.querySelectorAll('main section').forEach(s => s.classList.add('hidden'));
-        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('nav-active'));
         document.getElementById(`sec-${id}`).classList.remove('hidden');
         if (id === 'chat') app.loadChat();
         if (id === 'topics') app.loadTopics();
-        if (id === 'leaderboard') app.loadLB();
+        if (id === 'online') app.loadOnline();
         if (id === 'history') app.loadHistory();
         if (id === 'admin') app.loadAdmin();
+    },
+
+    postTopic: async () => {
+        const title = document.getElementById('topic-title').value;
+        const desc = document.getElementById('topic-desc').value;
+        if (!title || !desc) return;
+        await push(ref(db, 'topics'), { title, desc, author: user.username, timestamp: serverTimestamp() });
+        app.modal('modal-topic', false);
+    },
+
+    loadTopics: () => {
+        onValue(query(ref(db, 'topics'), limitToLast(20)), s => {
+            const list = document.getElementById('topics-list');
+            list.innerHTML = "";
+            s.forEach(c => {
+                const t = c.val();
+                const div = document.createElement('div');
+                div.className = "glass p-5 rounded-2xl active:bg-slate-800 transition";
+                div.innerHTML = `<h4 class="font-bold text-yellow-500">${t.title}</h4><p class="text-[10px] text-slate-500">By ${t.author}</p>`;
+                div.onclick = () => app.viewTopic(t);
+                list.prepend(div);
+            });
+        });
+    },
+
+    viewTopic: (t) => {
+        app.nav('topic-detail');
+        document.getElementById('topic-content-detail').innerHTML = `
+            <h2 class="text-2xl font-black text-yellow-500 mb-2">${t.title}</h2>
+            <p class="text-xs text-slate-400 mb-4 italic">Posted by ${t.author}</p>
+            <p class="text-sm leading-relaxed">${t.desc}</p>
+        `;
+    },
+
+    loadOnline: () => {
+        onValue(ref(db, 'presence'), s => {
+            const list = document.getElementById('online-list');
+            list.innerHTML = "";
+            s.forEach(c => {
+                list.innerHTML += `<div class="glass p-3 rounded-xl text-center text-xs font-bold text-green-400">${c.val().username}</div>`;
+            });
+            document.getElementById('online-count').innerText = s.size + ' Online';
+        });
+    },
+
+    presence: () => {
+        const pRef = ref(db, `presence/${uid}`);
+        set(pRef, { username: user.username });
+        onDisconnect(pRef).remove();
     },
 
     sendMessage: async () => {
         const input = document.getElementById('chat-input');
         if (!input.value.trim()) return;
-        await push(ref(db, 'messages'), {
-            u: user.username, t: input.value, time: serverTimestamp(), uid
-        });
+        await push(ref(db, 'messages'), { u: user.username, t: input.value, time: serverTimestamp(), uid });
         input.value = "";
     },
 
@@ -172,76 +176,16 @@ const app = {
             s.forEach(c => {
                 const m = c.val();
                 const isMe = m.uid === uid;
-                box.innerHTML += `
-                    <div class="flex ${isMe ? 'justify-end' : 'justify-start'}">
-                        <div class="chat-bubble ${isMe ? 'my-chat' : ''}">
-                            <p class="text-[9px] font-bold text-yellow-500">${m.u}</p>
-                            <p class="text-sm">${m.t}</p>
-                        </div>
-                    </div>`;
+                box.innerHTML += `<div class="flex ${isMe ? 'justify-end' : 'justify-start'}"><div class="chat-bubble ${isMe ? 'my-chat' : ''}"><p class="text-[9px] font-bold text-yellow-500">${m.u}</p><p class="text-sm">${m.t}</p></div></div>`;
             });
             box.scrollTop = box.scrollHeight;
-        });
-    },
-
-    loadLB: () => {
-        onValue(query(ref(db, 'users'), orderByChild('balance'), limitToLast(15)), s => {
-            const list = document.getElementById('lb-list');
-            list.innerHTML = "";
-            let users = [];
-            s.forEach(c => users.push(c.val()));
-            users.reverse().forEach((u, i) => {
-                list.innerHTML += `
-                    <div class="glass p-4 rounded-2xl flex justify-between">
-                        <span>#${i+1} ${u.username}</span>
-                        <span class="text-green-500 font-bold">₱${u.balance.toFixed(2)}</span>
-                    </div>`;
-            });
-        });
-    },
-
-    postTopic: async () => {
-        const title = document.getElementById('topic-title').value;
-        const desc = document.getElementById('topic-desc').value;
-        if (!title || !desc) return;
-        await push(ref(db, 'topics'), {
-            title, desc, author: user.username, timestamp: serverTimestamp()
-        });
-        app.modal('modal-topic', false);
-    },
-
-    loadTopics: () => {
-        onValue(query(ref(db, 'topics'), limitToLast(20)), s => {
-            const list = document.getElementById('topics-list');
-            list.innerHTML = "";
-            s.forEach(c => {
-                const t = c.val();
-                list.innerHTML += `
-                    <div class="glass p-5 rounded-3xl">
-                        <h4 class="font-bold text-yellow-500">${t.title}</h4>
-                        <p class="text-sm text-slate-300 mt-1">${t.desc}</p>
-                        <p class="text-[10px] text-slate-500 mt-3">Post by ${t.author}</p>
-                    </div>`;
-            });
-        });
-    },
-
-    presence: () => {
-        const pRef = ref(db, `presence/${uid}`);
-        set(pRef, { status: 'online', username: user.username });
-        onDisconnect(pRef).remove();
-        onValue(ref(db, 'presence'), s => {
-            document.getElementById('online-count').innerText = s.size + ' Online';
         });
     },
 
     requestWithdraw: async () => {
         if (user.balance < 1) return alert("Min ₱1.00");
         const amt = user.balance;
-        await push(ref(db, 'withdrawals'), {
-            uid, username: user.username, gcash: user.gcash,
-            amount: amt, status: 'pending', timestamp: serverTimestamp()
-        });
+        await push(ref(db, 'withdrawals'), { uid, username: user.username, gcash: user.gcash, amount: amt, status: 'pending', timestamp: serverTimestamp() });
         await update(ref(db, `users/${uid}`), { balance: 0 });
         alert("Requested!");
     },
@@ -253,11 +197,7 @@ const app = {
             s.forEach(c => {
                 const w = c.val();
                 if (w.uid === uid) {
-                    list.innerHTML += `
-                        <div class="glass p-4 rounded-2xl flex justify-between">
-                            <div><p class="font-bold">₱${w.amount.toFixed(2)}</p></div>
-                            <div class="text-[10px] font-bold ${w.status==='paid'?'text-green-500':'text-yellow-500'} uppercase">${w.status}</div>
-                        </div>`;
+                    list.innerHTML += `<div class="glass p-4 rounded-xl flex justify-between"><div><p class="font-bold">₱${w.amount.toFixed(2)}</p></div><div class="text-[10px] font-bold ${w.status === 'paid' ? 'text-green-500' : 'text-yellow-500'} uppercase">${w.status}</div></div>`;
                 }
             });
         });
@@ -272,24 +212,14 @@ const app = {
             s.forEach(c => {
                 const w = c.val();
                 if (w.status === 'pending') {
-                    list.innerHTML += `
-                        <div class="glass p-4 rounded-xl">
-                            <p class="text-xs">${w.username} - ${w.gcash}</p>
-                            <p class="text-lg font-bold">₱${w.amount}</p>
-                            <button onclick="app.approve('${c.key}')" class="bg-green-600 px-4 py-1 rounded-lg text-xs mt-2">APPROVE</button>
-                        </div>`;
+                    list.innerHTML += `<div class="glass p-4 rounded-xl flex justify-between items-center"><p class="text-xs font-bold">${w.username} - ₱${w.amount}</p><button onclick="app.approve('${c.key}')" class="bg-green-600 px-3 py-1 rounded text-[10px]">PAY</button></div>`;
                 }
             });
         });
     },
 
     approve: (k) => update(ref(db, `withdrawals/${k}`), { status: 'paid' }),
-    modal: (id, show) => document.getElementById(id).style.display = show ? 'flex' : 'none',
-    copyRef: () => {
-        document.getElementById('ref-link').select();
-        document.execCommand('copy');
-        alert("Link Copied!");
-    }
+    modal: (id, show) => document.getElementById(id).style.display = show ? 'flex' : 'none'
 };
 
 window.app = app;
