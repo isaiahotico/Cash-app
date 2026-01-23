@@ -11,111 +11,121 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Telegram Init
+// Telegram Logic
 const tg = window.Telegram.WebApp;
 tg.ready();
 tg.expand();
 const user = tg.initDataUnsafe.user;
-const uid = user ? (user.username || `tg_${user.id}`) : "Guest_" + Math.floor(Math.random()*1000);
-document.getElementById("userIdDisplay").innerText = uid;
+const username = user ? (user.username || `user_${user.id}`) : "Guest_" + Math.floor(Math.random()*999);
+document.getElementById("userDisplay").innerText = "👤 " + username;
 
-const userRef = doc(db, "users", uid);
-let currentBalance = 0;
+const userRef = doc(db, "users", username);
+let myBalance = 0;
 
-// Real-time Balance & Total Earned
+// Balance Listener
 onSnapshot(userRef, (snap) => {
     if (snap.exists()) {
-        currentBalance = snap.data().balance || 0;
-        document.getElementById("balanceDisplay").innerText = currentBalance.toFixed(3);
+        myBalance = snap.data().balance || 0;
+        document.getElementById("balDisplay").innerText = myBalance.toFixed(3);
     } else {
-        setDoc(userRef, { balance: 0, totalEarned: 0, user: uid }, { merge: true });
+        setDoc(userRef, { balance: 0, totalEarned: 0, user: username }, { merge: true });
     }
 });
 
-// Real-time Chat
-const chatQ = query(collection(db, "chat_messages"), orderBy("timestamp", "desc"), limit(40));
+// Load Global Chat
+const chatQ = query(collection(db, "chat_messages"), orderBy("timestamp", "desc"), limit(50));
 onSnapshot(chatQ, (snap) => {
-    const chatContainer = document.getElementById("chat-container");
-    const threeDaysAgo = Date.now() - (3 * 24 * 60 * 60 * 1000);
-    chatContainer.innerHTML = snap.docs
-        .filter(d => d.data().timestamp?.toMillis() > threeDaysAgo)
+    const win = document.getElementById("chat-window");
+    const cutoff = Date.now() - (3 * 24 * 60 * 60 * 1000);
+    win.innerHTML = snap.docs
+        .filter(d => d.data().timestamp?.toMillis() > cutoff)
         .reverse()
-        .map(d => `<div class="msg ${d.data().user === uid ? 'me' : ''}"><b>${d.data().user}:</b><br>${d.data().text}</div>`)
+        .map(d => `<div class="msg ${d.data().user === username ? 'me' : ''}"><b>${d.data().user}:</b><br>${d.data().text}</div>`)
         .join("");
-    chatContainer.scrollTop = chatContainer.scrollHeight;
+    win.scrollTop = win.scrollHeight;
 });
 
-// Leaderboard (Top 10)
-const leaderboardQ = query(collection(db, "users"), orderBy("totalEarned", "desc"), limit(10));
-onSnapshot(leaderboardQ, (snap) => {
-    document.querySelector("#leaderboardTable tbody").innerHTML = snap.docs.map((d, i) => `
-        <tr>
-            <td class="${i === 0 ? 'rank-gold' : ''}">#${i + 1}</td>
-            <td>${d.data().user}</td>
-            <td>₱${(d.data().totalEarned || 0).toFixed(3)}</td>
-        </tr>
-    `).join("");
-});
+// Manual Ad Trigger (Popunder + Native)
+window.triggerManualAds = () => {
+    // 1. Trigger Popunder
+    const popScript = document.createElement('script');
+    popScript.dataset.zone = '10049581';
+    popScript.src = 'https://al5sm.com/tag.min.js';
+    document.body.appendChild(popScript);
 
-// Ads Logic
-async function triggerAds() {
+    // 2. Trigger Native Ads
+    const nativeContainer = document.getElementById("native-container");
+    nativeContainer.innerHTML = '<small style="color:yellow">Native Ads Loaded!</small>';
+    const natScript = document.createElement('script');
+    natScript.dataset.zone = '10109465';
+    natScript.src = 'https://groleegni.net/vignette.min.js';
+    nativeContainer.appendChild(natScript);
+    
+    alert("Ads activated! Please click the ads to support us.");
+};
+
+// Interstitial Ads
+async function runInterstitial() {
     try {
         await show_10337853();
         await show_10337795();
         await show_10276123();
         return true;
     } catch (e) {
-        alert("Ads not finished. Watch all 3 to earn.");
+        alert("Please complete all 3 ads to send message and earn.");
         return false;
     }
 }
 
-// Send Message
+// Send Chat
 window.sendMessage = async () => {
-    const input = document.getElementById("msgInput");
+    const input = document.getElementById("chatInput");
     const text = input.value.trim();
     if (!text) return;
 
-    const cooldown = localStorage.getItem("lastMsg") || 0;
-    if (Date.now() - cooldown < 180000) return alert("Wait 3 minutes cooldown.");
+    const last = localStorage.getItem("lastMsg") || 0;
+    if (Date.now() - last < 180000) return alert("Cooldown: 3 minutes.");
 
-    const success = await triggerAds();
-    if (success) {
-        await addDoc(collection(db, "chat_messages"), { user: uid, text, timestamp: serverTimestamp() });
-        await updateDoc(userRef, { 
-            balance: increment(0.015),
-            totalEarned: increment(0.015)
-        });
+    const adStatus = await runInterstitial();
+    if (adStatus) {
+        await addDoc(collection(db, "chat_messages"), { user: username, text, timestamp: serverTimestamp() });
+        await updateDoc(userRef, { balance: increment(0.015), totalEarned: increment(0.015) });
         localStorage.setItem("lastMsg", Date.now());
         input.value = "";
     }
 };
 
-// Withdrawal Logic
-window.requestWithdraw = async () => {
-    const name = document.getElementById("gcName").value;
-    const num = document.getElementById("gcNum").value;
-    const amt = parseFloat(document.getElementById("withdrawAmt").value);
-
-    if (amt < 0.015) return alert("Minimum withdrawal is ₱0.015");
-    if (amt > currentBalance) return alert("Insufficient balance");
-
-    await updateDoc(userRef, { balance: increment(-amt) });
-    await addDoc(collection(db, "withdrawals"), {
-        user: uid, gcashName: name, gcashNumber: num, amount: amt, status: "pending", timestamp: serverTimestamp()
-    });
-    alert("GCash request sent!");
-};
-
-// User's History
-const historyQ = query(collection(db, "withdrawals"), where("user", "==", uid), orderBy("timestamp", "desc"), limit(5));
-onSnapshot(historyQ, (snap) => {
-    document.querySelector("#myWithdrawals tbody").innerHTML = snap.docs.map(d => `
-        <tr><td>₱${d.data().amount.toFixed(3)}</td><td>${d.data().status}</td><td>${d.data().reason || '-'}</td></tr>
+// Leaderboard
+onSnapshot(query(collection(db, "users"), orderBy("totalEarned", "desc"), limit(10)), (snap) => {
+    document.querySelector("#leaderTable tbody").innerHTML = snap.docs.map((d, i) => `
+        <tr><td>#${i + 1}</td><td>${d.data().user}</td><td>₱${(d.data().totalEarned || 0).toFixed(3)}</td></tr>
     `).join("");
 });
 
-// Admin Panel Logic
+// Withdrawal
+window.requestWithdraw = async () => {
+    const name = document.getElementById("gcashName").value;
+    const num = document.getElementById("gcashNum").value;
+    const amt = parseFloat(document.getElementById("withdrawAmt").value);
+
+    if (amt < 0.015) return alert("Min 0.015 PHP");
+    if (amt > myBalance) return alert("Insufficient balance");
+
+    await updateDoc(userRef, { balance: increment(-amt) });
+    await addDoc(collection(db, "withdrawals"), {
+        user: username, gcashName: name, gcashNumber: num, amount: amt, status: "pending", timestamp: serverTimestamp()
+    });
+    alert("Request submitted!");
+};
+
+// History
+onSnapshot(query(collection(db, "withdrawals"), where("user", "==", username), orderBy("timestamp", "desc"), limit(5)), (snap) => {
+    document.querySelector("#myHistory tbody").innerHTML = snap.docs.map(d => `
+        <tr><td>₱${d.data().amount.toFixed(3)}</td><td>${d.data().status}</td><td>${d.data().note || '-'}</td></tr>
+    `).join("");
+});
+
+// Admin Dashboard
 window.toggleOwner = () => {
     const p = document.getElementById("owner-panel");
     p.style.display = (p.style.display === "block") ? "none" : "block";
@@ -123,18 +133,17 @@ window.toggleOwner = () => {
 
 window.loginAdmin = () => {
     if (document.getElementById("adminPass").value === "Propetas6") {
-        document.getElementById("adminAuth").style.display = "none";
+        document.getElementById("adminLogin").style.display = "none";
         document.getElementById("adminContent").style.display = "block";
-        loadAdminTable();
+        loadAdmin();
     } else {
-        alert("Invalid Access");
+        alert("Wrong Password");
     }
 };
 
-function loadAdminTable() {
-    const adminQ = query(collection(db, "withdrawals"), where("status", "==", "pending"), limit(50));
-    onSnapshot(adminQ, (snap) => {
-        document.getElementById("adminWithdrawalTable").innerHTML = snap.docs.map(d => `
+function loadAdmin() {
+    onSnapshot(query(collection(db, "withdrawals"), where("status", "==", "pending")), (snap) => {
+        document.getElementById("adminTable").innerHTML = snap.docs.map(d => `
             <tr>
                 <td>${d.data().user}</td>
                 <td>${d.data().gcashNumber}</td>
@@ -149,24 +158,14 @@ function loadAdminTable() {
 }
 
 window.approve = async (id) => {
-    await updateDoc(doc(db, "withdrawals", id), { status: "approved", reason: "Sent to GCash" });
+    await updateDoc(doc(db, "withdrawals", id), { status: "approved", note: "Sent via GCash" });
 };
 
 window.reject = async (id) => {
-    const reason = prompt("Rejection reason?");
     const snap = await getDoc(doc(db, "withdrawals", id));
     const data = snap.data();
     await updateDoc(doc(db, "users", data.user), { balance: increment(data.amount) }); // Refund
-    await updateDoc(doc(db, "withdrawals", id), { status: "rejected", reason });
+    await updateDoc(doc(db, "withdrawals", id), { status: "rejected", note: "Rejected by owner" });
 };
 
-// Auto Refresh Native Ads every 30s
-setInterval(() => {
-    console.log("Refreshing ads space...");
-    const container = document.getElementById("native-ad-container");
-    container.style.opacity = "0.5";
-    setTimeout(() => container.style.opacity = "1", 500);
-}, 30000);
-
-// Clock
-setInterval(() => document.getElementById("clock").innerText = new Date().toLocaleString(), 1000);
+setInterval(() => document.getElementById("timeClock").innerText = new Date().toLocaleString(), 1000);
