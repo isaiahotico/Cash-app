@@ -9,11 +9,23 @@ const db = firebase.firestore();
 /* ───── TELEGRAM INIT ───── */
 const tg = window.Telegram.WebApp;
 tg.ready();
+tg.expand(); // 🔥 IMPORTANT: fixes click issues
 
 let UID = null;
-let ADMIN_MODE = false;
 
-/* ───── VERIFY TELEGRAM USER ───── */
+/* ───── SHOW TELEGRAM USER IMMEDIATELY ───── */
+const tgUser = tg.initDataUnsafe?.user;
+
+if (!tgUser) {
+  alert("Please open inside Telegram");
+  tg.close();
+}
+
+// Display instantly (no waiting)
+document.getElementById("tgUser").innerText =
+  "@" + (tgUser.username || "NoUsername");
+
+/* ───── VERIFY USER (BACKGROUND) ───── */
 fetch("/verifyUser", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
@@ -22,7 +34,10 @@ fetch("/verifyUser", {
 .then(r => r.json())
 .then(d => {
   UID = d.uid;
-  document.getElementById("tgUser").innerText = "@" + d.username;
+
+  // Enable buttons ONLY after verification
+  document.getElementById("watchBtn").disabled = false;
+  document.getElementById("withdrawBtn").disabled = false;
 
   // Real-time balance
   db.collection("users").doc(UID)
@@ -32,68 +47,36 @@ fetch("/verifyUser", {
           doc.data().balance.toFixed(5);
       }
     });
+})
+.catch(() => {
+  alert("Verification failed");
+  tg.close();
 });
 
 /* ───── WATCH AD ───── */
 function watchAd() {
+  if (!UID) return;
+
   show_10276123().then(() => {
     fetch("/rewardAd", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ uid: UID })
     });
-  }).catch(() => alert("Ad not available"));
+  }).catch(() => {
+    alert("Ad not available");
+  });
 }
 
 /* ───── REQUEST WITHDRAW ───── */
 function requestWithdraw() {
+  if (!UID) return;
+
   fetch("/requestWithdraw", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ uid: UID })
-  }).then(() => alert("Withdrawal requested"));
-}
-
-/* ───── ADMIN DASHBOARD ───── */
-function toggleAdmin() {
-  if (!ADMIN_MODE) {
-    const pass = prompt("Admin password");
-    if (pass !== "Propetas6") return alert("Wrong password");
-    ADMIN_MODE = true;
-    document.getElementById("adminPanel").classList.remove("hidden");
-    loadWithdrawals();
-  } else {
-    document.getElementById("adminPanel").classList.add("hidden");
-    ADMIN_MODE = false;
-  }
-}
-
-function loadWithdrawals() {
-  db.collection("withdrawals")
-    .where("status", "==", "pending")
-    .onSnapshot(snap => {
-      const box = document.getElementById("withdrawals");
-      box.innerHTML = "";
-
-      snap.forEach(doc => {
-        const d = doc.data();
-        box.innerHTML += `
-          <div class="item">
-            <b>${d.uid}</b><br>
-            Amount: ${d.amount} USDT<br>
-            <button onclick="approve('${doc.id}')">Approve</button>
-          </div>`;
-      });
-    });
-}
-
-function approve(id) {
-  fetch("/adminWithdraw", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      id,
-      password: "Propetas6"
-    })
+  }).then(() => {
+    alert("Withdrawal request sent");
   });
 }
