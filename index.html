@@ -4,11 +4,14 @@
 <meta charset="UTF-8">
 <title>Telegram USDT Faucet</title>
 
+<!-- Telegram -->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
-<!-- Monetag -->
+<!-- Monetag (MUST be before JS logic) -->
 <script src="//libtl.com/sdk.js"
   data-zone="10276123"
   data-sdk="show_10276123"></script>
@@ -28,18 +31,8 @@ body {
   padding:20px;
   border-radius:16px;
 }
-h2,h3 { text-align:center; }
-button {
-  width:100%;
-  padding:12px;
-  border:none;
-  border-radius:10px;
-  margin-top:10px;
-  font-weight:bold;
-}
-.watch { background:#22c55e; }
-.withdraw { background:#facc15; }
-.admin { background:#ef4444; }
+h2 { text-align:center; }
+
 .box {
   background:#000;
   padding:10px;
@@ -47,12 +40,23 @@ button {
   margin:8px 0;
   text-align:center;
 }
-.hidden { display:none; }
-.item {
-  background:#000;
-  padding:10px;
+
+button {
+  width:100%;
+  padding:14px;
+  border:none;
   border-radius:10px;
-  margin-top:8px;
+  margin-top:10px;
+  font-weight:bold;
+  font-size:16px;
+  cursor:pointer;
+}
+
+.watch { background:#22c55e; }
+.withdraw { background:#facc15; }
+
+button:disabled {
+  opacity:0.6;
 }
 </style>
 </head>
@@ -62,20 +66,21 @@ button {
 <div class="card">
   <h2>💰 USDT Faucet</h2>
 
-  <div class="box">Telegram: <b id="tgUser">loading...</b></div>
-  <div class="box">Balance: <b><span id="balance">0.00000</span> USDT</b></div>
-
-  <button class="watch" onclick="watchAd()">▶ Watch Ad (+0.00010)</button>
-  <button class="withdraw" onclick="requestWithdraw()">💸 Withdraw</button>
-
-  <hr>
-
-  <button class="admin" onclick="toggleAdmin()">🔐 Admin Dashboard</button>
-
-  <div id="adminPanel" class="hidden">
-    <h3>🔥 Live Withdrawals</h3>
-    <div id="withdrawals"></div>
+  <div class="box">
+    Telegram: <b id="tgUser">@loading</b>
   </div>
+
+  <div class="box">
+    Balance: <b><span id="balance">0.00000</span> USDT</b>
+  </div>
+
+  <button id="watchBtn" class="watch" onclick="watchAd()" disabled>
+    ▶ Watch Ad (+0.00010)
+  </button>
+
+  <button id="withdrawBtn" class="withdraw" onclick="requestWithdraw()" disabled>
+    💸 Withdraw
+  </button>
 </div>
 
 <script src="app.js"></script>
