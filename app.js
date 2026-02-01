@@ -58,17 +58,25 @@ function formatMoney(n) {
 const tUser = tg.initDataUnsafe?.user || { id: `tg_${Date.now()}`, first_name: 'User', username: null };
 const tgId = tUser.id?.toString();
 const currentDisplayName = tUser.username ? `@${tUser.username}` : (tUser.first_name || 'Anonymous');
-const currentReferralCode = tUser.username ? tUser.username.toLowerCase() : authUid; // Use username as referral code
+// Use Telegram username as referral code if available, otherwise Firebase UID (will be set later)
+let currentReferralCode = tUser.username ? tUser.username.toLowerCase() : null; 
 
 // Display initial Telegram user data immediately
 document.getElementById('user-display').innerText = currentDisplayName;
-document.getElementById('my-ref-code').innerText = currentReferralCode;
+// If referral code is not yet set (because authUid is null), display a placeholder
+document.getElementById('my-ref-code').innerText = currentReferralCode || 'Loading...';
 
 
 /* === AUTH STATE === */
 onAuthStateChanged(auth, async (user) => {
   if (!user) return;
   authUid = user.uid;
+
+  // If currentReferralCode was null, set it to authUid now
+  if (!currentReferralCode) {
+    currentReferralCode = authUid;
+    document.getElementById('my-ref-code').innerText = currentReferralCode;
+  }
 
   userDocRef = doc(db, 'users', authUid);
 
@@ -186,9 +194,11 @@ function setupRealtimeListeners() {
     box.innerHTML = '';
     snap.forEach(docSnap => {
       const m = docSnap.data();
-      box.innerHTML += `<div class="p-2 bg-blue-50 rounded-md"><b>${m.user}</b>: ${m.text}</div>`;
+      // Format timestamp for display
+      const date = m.createdAt?.toDate ? m.createdAt.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+      box.innerHTML += `<div class="p-2 bg-blue-50 rounded-md"><b>${m.user}</b> <span class="text-gray-500 text-xs">${date}</span>: ${m.text}</div>`;
     });
-    box.scrollTop = box.scrollHeight;
+    box.scrollTop = box.scrollHeight; // Auto-scroll to bottom
   });
 
   // User's withdrawals
@@ -200,7 +210,7 @@ function setupRealtimeListeners() {
       const w = docSnap.data();
       const date = w.createdAt?.toDate ? w.createdAt.toDate().toLocaleString() : '';
       const statusClass = w.status === 'Paid' ? 'text-green-600' : (w.status === 'Pending' ? 'text-orange-500' : 'text-red-600');
-      el.innerHTML += `<div class="p-2 border-b flex justify-between"><div><div class="font-bold">₱${parseFloat(w.amount).toFixed(4)} → ${w.gcash}</div><div class="text-xs text-gray-500">${w.username} • ${date}</div></div><div class="${statusClass} font-semibold">${w.status}</div></div>`;
+      el.innerHTML += `<div class="p-2 border-b flex justify-between"><div><div class="font-bold">₱${parseFloat(w.amount).toFixed(4)} → ${w.gcash}</div><div class="text-xs text-gray-500">${date}</div></div><div class="${statusClass} font-semibold">${w.status}</div></div>`;
     });
   });
 
@@ -224,6 +234,7 @@ function tryShowInitialAd() {
     updateDoc(userDocRef, { lastInitialAd: now }).catch(()=>{});
   } catch(e) {
     console.error('Initial ad show failed', e);
+    // No alert for initial ad as it's background
   }
 }
 
@@ -262,13 +273,17 @@ window.watchHighRewardAd = async function() {
   tg.MainButton.setText('LOADING AD...').show();
 
   try {
-    await ad();
+    const adResult = await ad(); // Monetag SDK might return a promise or value
+    if (adResult && adResult.status === 'error') { // Check if Monetag ad failed
+        throw new Error('Monetag ad failed to load or show.');
+    }
     await updateDoc(userDocRef, { lastHighReward: now }); // Update last ad time first
     await processAdReward(HIGH_REWARD); // Then process reward and referral
     tg.MainButton.hide();
   } catch (e) {
     tg.MainButton.hide();
-    tg.showAlert('Ad failed or skipped.');
+    console.error('High reward ad failed:', e);
+    tg.showAlert('Ad failed or skipped. Please try again later.');
   }
 };
 
@@ -281,13 +296,17 @@ window.watchRandomRewardAd = async function() {
   tg.MainButton.setText('LOADING POP...').show();
 
   try {
-    await ad('pop');
+    const adResult = await ad('pop'); // Monetag SDK might return a promise or value
+    if (adResult && adResult.status === 'error') { // Check if Monetag ad failed
+        throw new Error('Monetag ad failed to load or show.');
+    }
     await updateDoc(userDocRef, { lastRandomReward: now }); // Update last ad time first
     await processAdReward(RANDOM_REWARD); // Then process reward and referral
     tg.MainButton.hide();
   } catch (e) {
     tg.MainButton.hide();
-    tg.showAlert('Popup ad failed or skipped.');
+    console.error('Random reward ad failed:', e);
+    tg.showAlert('Popup ad failed or skipped. Please try again later.');
   }
 };
 
@@ -395,6 +414,8 @@ window.requestWithdrawal = async function() {
 /* === ADMIN UI & ACTIONS === */
 window.checkAdmin = async function() {
   const pass = document.getElementById('admin-pass').value;
+  // IMPORTANT: Replace 'Propetas12' with a secure, server-side verified password or admin UID check.
+  // For production, DO NOT hardcode passwords here.
   if (pass !== 'Propetas12') return alert('Wrong password');
 
   // show admin content
