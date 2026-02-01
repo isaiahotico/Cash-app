@@ -1,184 +1,65 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎖🤑PAPERHOUSE INC ADS🤑🎖</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-
-    <!-- Monetag SDKs -->
-    <!-- Rewarded Interstitial/Popup -->
-    <script src='//libtl.com/sdk.js' data-zone='10276123' data-sdk='show_10276123'></script>
-    <script src='//libtl.com/sdk.js' data-zone='10337795' data-sdk='show_10337795'></script>
-    <script src='//libtl.com/sdk.js' data-zone='10337853' data-sdk='show_10337853'></script>
-
-    <!-- Monetag Native Ad (Vignette script as provided) -->
-    <!-- This script will load a vignette ad. If you want a traditional "native ad card", 
-         you'll need a different Monetag integration or custom ad unit. -->
-    <script id="nativeAdScript1" data-zone='10109465' src='https://groleegni.net/vignette.min.js'></script>
-    <script id="nativeAdScript2" data-zone='10109465' src='https://groleegni.net/vignette.min.js'></script>
-    <script id="nativeAdScript3" data-zone='10109465' src='https://groleegni.net/vignette.min.js'></script>
-
-    <style>
-        .sky-gradient { background: linear-gradient(135deg, #0ea5e9, #38bdf8); }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-
-        /* Style for the invite popup */
-        .invite-popup {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: #4CAF50; /* Green */
-            color: white;
-            padding: 15px 25px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            z-index: 1000;
-            text-align: center;
-            font-size: 1.1em;
-            opacity: 0;
-            transition: opacity 0.5s ease-in-out;
-        }
-        .invite-popup.show {
-            opacity: 1;
-        }
-    </style>
+  <meta charset="utf-8" />
+  <title>Retro Pixel Racer — Mini</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body { font-family: Arial, sans-serif; margin: 12px; background: #111; color: #eee; }
+    #ui { display:flex; gap:12px; align-items:center; margin-bottom:8px; flex-wrap:wrap; }
+    #info { flex:1; min-width:220px; }
+    #canvasWrap{ background:#222; padding:8px; border-radius:6px; display:inline-block; }
+    canvas { background: linear-gradient(#2b2b2b,#1a1a1a); display:block; border-radius:4px; }
+    .btn { padding:8px 12px; border-radius:6px; background:#0a84ff; color:white; border:0; cursor:pointer; }
+    .btn.secondary { background:#444; }
+    .controls { display:flex; gap:8px; margin-top:8px; }
+    #adminPanel { background:#161616; padding:8px; border-radius:6px; margin-top:8px; display:none; }
+    input, select { padding:6px; border-radius:6px; border:1px solid #333; background:#222; color:#eee; }
+    .small { font-size:13px; color:#aaa; }
+    .pill { padding:6px 8px; background:#1a1a1a; border-radius:6px; display:inline-block; margin-right:6px; }
+    #withdrawList { max-height:220px; overflow:auto; margin-top:8px; }
+  </style>
 </head>
-<body class="bg-sky-50 font-sans min-h-screen pb-20">
-
-    <!-- Header -->
-    <header class="sky-gradient text-white p-4 shadow-lg text-center rounded-b-3xl">
-        <h1 class="text-xl font-bold italic">🎖🤑PAPERHOUSE INC ADS🤑🎖</h1>
-        <p class="text-sm">Welcome, <span id="telegramUsername" class="font-semibold">Guest</span>!</p>
-        <p id="userBalance" class="text-2xl font-black mt-2">₱0.00</p>
-    </header>
-
-    <!-- Main Content Containers -->
-
-    <main class="p-4">
-        <!-- Home / Earn Section -->
-        <section id="earn" class="tab-content active space-y-4">
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-sky-100 text-center">
-                <h2 class="text-sky-600 font-bold mb-2">EARN REWARDS</h2>
-                <p class="text-gray-500 text-sm mb-4">Watch an ad to get ₱0.0065 (30s cooldown)</p>
-                <button id="watchAdBtn" onclick="watchAd()" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-4 rounded-xl transition transform active:scale-95 shadow-md">
-                    📺 WATCH AD & CLAIM
-                </button>
-                <p id="adCooldownTimer" class="text-xs text-gray-400 mt-2"></p>
-            </div>
-
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-sky-100 text-center">
-                <h2 class="text-sky-600 font-bold mb-2">BONUS POPUP AD</h2>
-                <p class="text-gray-500 text-sm mb-4">Click for a chance to get ₱0.0012 (10min cooldown)</p>
-                <button id="bonusAdBtn" onclick="showRandomRewardedPopup()" class="w-full bg-purple-500 hover:bg-purple-600 text-white font-bold py-4 rounded-xl transition transform active:scale-95 shadow-md">
-                    ✨ GET BONUS AD
-                </button>
-                <p id="bonusAdCooldownTimer" class="text-xs text-gray-400 mt-2"></p>
-            </div>
-
-            <!-- Native Ad Cards (Donation Ads) -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="bg-white p-4 rounded-2xl shadow-sm border border-sky-100 text-center cursor-pointer" onclick="showDonationAd('donationAd1')">
-                    <h3 class="font-bold text-sky-600">Support Us!</h3>
-                    <p class="text-sm text-gray-500">Click to view an ad and donate.</p>
-                    <p id="donationAd1Cooldown" class="text-xs text-gray-400 mt-1"></p>
-                </div>
-                <div class="bg-white p-4 rounded-2xl shadow-sm border border-sky-100 text-center cursor-pointer" onclick="showDonationAd('donationAd2')">
-                    <h3 class="font-bold text-sky-600">Help Develop!</h3>
-                    <p class="text-sm text-gray-500">Click to view an ad and contribute.</p>
-                    <p id="donationAd2Cooldown" class="text-xs text-gray-400 mt-1"></p>
-                </div>
-                <div class="bg-white p-4 rounded-2xl shadow-sm border border-sky-100 text-center cursor-pointer" onclick="showDonationAd('donationAd3')">
-                    <h3 class="font-bold text-sky-600">Keep it Free!</h3>
-                    <p class="text-sm text-gray-500">Click to view an ad and support.</p>
-                    <p id="donationAd3Cooldown" class="text-xs text-gray-400 mt-1"></p>
-                </div>
-            </div>
-
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-sky-100">
-                <h3 class="font-bold text-gray-700 mb-2">Withdrawal (GCash)</h3>
-                <input id="gcashNumber" type="number" placeholder="GCash Number" class="w-full p-3 border rounded-lg mb-2">
-                <p class="text-xs text-gray-400 mb-2">Min. Withdraw: ₱0.02</p>
-                <button onclick="requestWithdrawal()" class="w-full bg-green-500 text-white py-2 rounded-lg font-bold">Withdraw Now</button>
-                <h4 class="font-bold text-gray-700 mt-4 mb-2">Withdrawal History</h4>
-                <div id="withdrawalHistory" class="space-y-2 text-sm">
-                    <p class="text-gray-400">Loading history...</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- Leaderboard -->
-        <section id="leaderboard
-
-" class="tab-content">
-            <h2 class="text-sky-700 font-bold text-lg mb-4 text-center">🏆 TOP EARNERS</h2>
-            <div id="leaderboardList" class="space-y-2"></div>
-        </section>
-
-        <!-- Chat Room -->
-        <section id="chat" class="tab-content h-[60vh] flex flex-col">
-            <div id="chatMessages" class="flex-grow overflow-y-auto bg-white p-4 rounded-xl shadow-inner mb-2 space-y-2"></div>
-            <div class="flex gap-2">
-                <input id="chatInput" type="text" placeholder="Type message..." class="flex-grow p-2 border rounded-lg">
-                <button onclick="sendMessage()" class="bg-sky-500 text-white px-4 py-2 rounded-lg">Send</button>
-            </div>
-        </section>
-
-        <!-- Referral -->
-        <section id="referral" class="tab-content">
-            <div class="bg-white p-6 rounded-2xl text-center shadow-md">
-                <h2 class="text-sky-600 font-bold mb-2">REFERRAL SYSTEM</h2>
-                <p class="text-sm text-gray-500 mb-4">Share your Telegram username as your referral code!</p>
-                <div id="myReferralCode" class="text-2xl font-mono font-bold text-sky-700 bg-sky-50 p-3 rounded-lg border-dashed border-2 border-sky-200 mb-4">Loading...</div>
-                <button onclick="copyReferralCode()" class="bg-sky-400 text-white px-3 py-1 rounded-lg text-sm mb-4">Copy Username</button>
-                
-                <hr class="my-4">
-                <div class="flex justify-between items-center mb-2">
-                    <p class="font-bold text-gray-700">Total Referrals: <span id="totalReferrals">0</span></p>
-                    <p class="font-bold text-gray-700">Claimable Bonus: ₱<span id="claimableBonus">0.00</span></p>
-                </div>
-                <button id="claimReferralBonusBtn" onclick="claimReferralBonus()" class="w-full bg-indigo-500 text-white py-2 rounded-lg font-bold">Claim Referral Bonus</button>
-                
-                <hr class="my-4">
-                <input id="inputReferral" type="text" placeholder="Enter referrer's Telegram Username" class="w-full p-3 border rounded-lg mb-2">
-                <button id="applyReferralBtn" onclick="applyReferral()" class="w-full bg-sky-500 text-white py-2 rounded-lg font-bold">Apply Referrer</button>
-            </div>
-        </section>
-
-        <!-- Admin -->
-        <section id="admin" class="tab-content">
-            <div id="adminLoginPanel" class="bg-white p-6 rounded-2xl shadow-md">
-                <h2 class="font-bold mb-4">Admin Access</h2>
-                <input id="adminPass" type="password" placeholder="Enter Password" class="w-full p-2 border rounded mb-2">
-                <button onclick="checkAdmin()" class="w-full bg-gray-800 text-white py-2 rounded">Login</button>
-            </div>
-            <div id="adminPanel" class="hidden space-y-4">
-                <h2 class="font-bold text-red-600">Withdrawal Requests</h2>
-                <div id="adminWithdrawals" class="bg-white p-2 rounded"></div>
-            </div>
-        </section>
-    </main>
-
-    <!-- Bottom Navigation -->
-    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-sky-100 flex justify-around p-2 shadow-2xl z-10">
-        <button onclick="showTab('earn')" class="text-sky-600 flex flex-col items-center text-xs"><span>🏠</span>Home</button>
-        <button onclick="showTab('leaderboard')" class="text-sky-600 flex flex-col items-center text-xs"><span>🏆</span>Tops</button>
-        <button onclick="showTab('chat')" class="text-sky-600 flex flex-col items-center text-xs"><span>💬</span>Chat</button>
-        <button onclick="showTab('referral')" class="text-sky-600 flex flex-co
-
-l items-center text-xs"><span>👥</span>Invite</button>
-        <button onclick="showTab('admin')" class="text-sky-600 flex flex-col items-center text-xs"><span>⚙️</span>Admin</button>
-    </nav>
-
-    <!-- Invite Popup -->
-    <div id="invitePopup" class="invite-popup">
-        Invite now for your referrals to grow!
+<body>
+  <div id="ui">
+    <div id="info">
+      <div><span class="pill">User: <strong id="username">—</strong></span>
+      <span class="pill">Score: <strong id="score">0</strong></span>
+      <span class="pill">Dodged: <strong id="dodged">0</strong></span>
+      <span class="pill">Balance (PHP): <strong id="balance">0</strong></span>
+      </div>
+      <div class="small">Every 1000 barriers = 1 peso</div>
     </div>
+    <div>
+      <button id="startBtn" class="btn">Start</button>
+      <button id="withdrawBtn" class="btn secondary">Withdraw</button>
+      <button id="adminBtn" class="btn secondary">Admin</button>
+    </div>
+  </div>
 
-    <!-- Firebase SDKs -->
-    <script type="module" src="app.js"></script>
+  <div id="canvasWrap">
+    <canvas id="game" width="360" height="640"></canvas>
+    <div class="controls">
+      <button id="leftBtn" class="btn secondary">◀ LEFT</button>
+      <button id="rightBtn" class="btn secondary">RIGHT ▶</button>
+    </div>
+  </div>
+
+  <div id="adminPanel">
+    <div style="display:flex; gap:8px; align-items:center;">
+      <label class="small">Admin password:</label>
+      <input id="adminPassword" placeholder="password" />
+      <button id="adminLogin" class="btn">Login</button>
+      <button id="adminLogout" class="btn secondary">Logout</button>
+    </div>
+    <div id="withdrawList"></div>
+  </div>
+
+  <!-- Firebase compat libs (quick prototype) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+  <script src="app.js"></script>
 </body>
 </html>
