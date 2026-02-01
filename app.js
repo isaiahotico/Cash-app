@@ -61,12 +61,13 @@ onAuthStateChanged(auth, async (user) => {
   // Telegram data
   const tUser = tg.initDataUnsafe?.user || { id: `tg_${Date.now()}`, first_name: 'User', username: null };
   const tgId = tUser.id?.toString();
-  // Use Telegram username as referral code if available, otherwise Firebase UID
-  const myReferralCode = tUser.username ? tUser.username.toLowerCase() : authUid;
+  
+  // Determine display name and referral code based on Telegram user data
   const displayName = tUser.username ? `@${tUser.username}` : (tUser.first_name || 'Anonymous');
+  const referralCode = tUser.username ? tUser.username.toLowerCase() : authUid; // Use username as referral code
 
-  document.getElementById('user-display').innerText = `${displayName}`;
-  document.getElementById('my-ref-code').innerText = myReferralCode;
+  document.getElementById('user-display').innerText = displayName;
+  document.getElementById('my-ref-code').innerText = referralCode;
 
 
   // User doc path: users/{authUid}
@@ -95,8 +96,8 @@ onAuthStateChanged(auth, async (user) => {
     await setDoc(userDocRef, {
       authUid,
       telegramId: tgId,
-      username: displayName,
-      referralCode: myReferralCode, // Store own referral code
+      username: displayName, // Store current Telegram display name
+      referralCode: referralCode, // Store current referral code
       refBy: null, // Who referred this user
       refCount: 0, // How many users this user referred
       refBonus: 0, // Earned bonus from referrals
@@ -110,13 +111,22 @@ onAuthStateChanged(auth, async (user) => {
       createdAt: serverTimestamp()
     });
   } else {
-    // update basic fields if changed
+    // If user exists, update their username and referralCode in case it changed
     const existing = existingUserSnap.data();
+    const updates = {};
     if (existing.telegramId && existing.telegramId !== tgId) {
       // Another telegram id linked — keep as-is but set duplicate flag
-      await updateDoc(userDocRef, { isDuplicate: true, isBanned: true }).catch(()=>{});
-    } else {
-      await updateDoc(userDocRef, { username: displayName, telegramId: tgId, referralCode: myReferralCode }).catch(()=>{});
+      updates.isDuplicate = true;
+      updates.isBanned = true;
+    }
+    if (existing.username !== displayName) {
+      updates.username = displayName;
+    }
+    if (existing.referralCode !== referralCode) {
+      updates.referralCode = referralCode;
+    }
+    if (Object.keys(updates).length > 0) {
+      await updateDoc(userDocRef, updates).catch(()=>{});
     }
   }
 
@@ -130,7 +140,7 @@ onAuthStateChanged(auth, async (user) => {
     document.getElementById('txt-ref-b').innerText = `₱${formatMoney(userData.refBonus || 0)}`;
 
     // Disable bind button if already referred
-    const bindBtn = document.querySelector('#home .glass .btn-grad');
+    const bindBtn = document.querySelector('#home .glass button.btn-grad'); // More specific selector
     const refBinderInput = document.getElementById('ref-binder');
     if (userData.refBy) {
       refBinderInput.value = userData.refBy;
@@ -228,11 +238,11 @@ async function processAdReward(rewardAmount) {
   // If user was referred, give bonus to referrer
   if (userData.refBy) {
     const referrerUsername = userData.refBy;
-    const referrerQuery = query(collection(db, 'users'), where('referralCode', '==', referrerUsername), limit(1));
-    const referrerSnap = await getDoc(referrerQuery); // Use getDoc on a query result (should be a single doc)
+    // Query by referralCode (which is the username)
+    const referrerQuerySnapshot = await getDocs(query(collection(db, 'users'), where('referralCode', '==', referrerUsername), limit(1)));
     
-    if (referrerSnap.docs && referrerSnap.docs.length > 0) {
-      const referrerDocRef = referrerSnap.docs[0].ref;
+    if (!referrerQuerySnapshot.empty) {
+      const referrerDocRef = referrerQuerySnapshot.docs[0].ref;
       const bonus = rewardAmount * REFERRAL_BONUS_PERCENT;
       await updateDoc(referrerDocRef, { refBonus: increment(bonus) });
     }
@@ -248,7 +258,7 @@ window.watchHighRewardAd = async function() {
   const now = Date.now();
   if ((now - (userData.lastHighReward || 0)) < HIGH_COOLDOWN_MS) return tg.showAlert('Wait 30s cooldown.');
 
-  const ad = getAdFunction();
+  const ad = getRandomAdZone(); // Changed to getRandomAdZone
   tg.MainButton.setText('LOADING AD...').show();
 
   try {
@@ -267,7 +277,7 @@ window.watchRandomRewardAd = async function() {
   const now = Date.now();
   if ((now - (userData.lastRandomReward || 0)) < RANDOM_COOLDOWN_MS) return tg.showAlert('Wait 10min cooldown.');
 
-  const ad = getAdFunction();
+  const ad = getRandomAdZone(); // Changed to getRandomAdZone
   tg.MainButton.setText('LOADING POP...').show();
 
   try {
@@ -291,11 +301,10 @@ window.bindReferrer = async function() {
   if (userData.refBy) return tg.showAlert("You are already referred by someone.");
 
   // Find referrer by their referralCode
-  const referrerQuery = query(collection(db, 'users'), where('referralCode', '==', referrerCode), limit(1));
-  const referrerSnap = await getDoc(referrerQuery); // Use getDoc on a query result
+  const referrerQuerySnapshot = await getDocs(query(collection(db, 'users'), where('referralCode', '==', referrerCode), limit(1)));
   
-  if (referrerSnap.docs && referrerSnap.docs.length > 0) {
-    const referrerDocRef = referrerSnap.docs[0].ref;
+  if (!referrerQuerySnapshot.empty) {
+    const referrerDocRef = referrerQuerySnapshot.docs[0].ref;
     
     try {
       await runTransaction(db, async (tx) => {
