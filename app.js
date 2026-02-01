@@ -39,12 +39,6 @@ const MONETAG_REWARDED_ADS = [
     show_10337853  // New #3
 ];
 
-// Monetag Popunder Ad Zones (scripts are already in HTML)
-const MONETAG_POPUNDER_ADS = [
-    'popunderAdScript1', // ID of the script tag
-    'popunderAdScript2'  // ID of the script tag
-];
-
 // Psychological Tips
 const PSYCH_TIPS = [
     "Small gains add up! Consistency is key to reaching your goals.",
@@ -90,9 +84,6 @@ const PSYCH_TIPS = [
     "Think of your balance as a garden you're tending.",
     "Every small win reinforces your ability to achieve more.",
     "Your dedication is directly proportional to your earnings.",
-    "Keep pushing forward, even when the rewards seem small.",
-    "The compound effect applies to your earnings too!",
-    "You're developing valuable discipline in earning.",
     "One ad today, more balance tomorrow.",
     "Your actions today determine your financial reality tomorrow.",
     "Stay motivated! Your next reward is just a click away.",
@@ -147,14 +138,10 @@ async function initUser() {
     
     if (!snapshot.exists()) {
         // Check for double account (same Telegram ID)
-        const existingUserSnap = await get(query(ref(db, 'users'), orderByChild('username'), equalTo(telegramUsername)));
-        if (existingUserSnap.exists() && telegramUsername !== "Guest") { // Only check if not a test user
-            alert("A user with this Telegram ID already exists. Please use your existing account.");
-            // Potentially disable functionality or redirect
-            // For now, we'll let it proceed as a new user with the existing ID, but warn.
-            // In a real app, you'd handle this more robustly, maybe linking to existing data.
-        }
-
+        // This is a basic check. More robust checks would involve server-side logic (e.g., IP, device fingerprint)
+        // but these have privacy implications and potential for false positives.
+        // For now, we ensure a unique entry per Telegram userId.
+        
         const referralCode = Math.random().toString(36).substring(2, 8).toUpperCase();
         await set(userRef, {
             username: telegramUsername, // Use Telegram username
@@ -256,30 +243,6 @@ function showInAppInterstitialOnOpen() {
         console.warn('Monetag In-App Interstitial SDK not ready.');
     }
 }
-
-// Popunder Ad Logic
-window.showPopunderAd = function() {
-    const randomScriptId = MONETAG_POPUNDER_ADS[Math.floor(Math.random() * MONETAG_POPUNDER_ADS.length)];
-    const scriptElement = document.getElementById(randomScriptId);
-    if (scriptElement && scriptElement.src) {
-        // The Monetag popunder script usually just needs to be present and executed.
-        // To force a new one, we can try re-inserting it or calling its global function if it exposes one.
-        // The provided script automatically attaches to document.body, so re-executing it should work.
-        // However, directly calling the script again might not always trigger a new popunder.
-        // A more reliable way for a button would be if Monetag provided a specific JS function.
-        // For now, we'll just log and assume the script handles its own display logic.
-        alert("Opening Popunder Ad (may open in a new tab/window or in background).");
-        // You might need to dynamically create and append a new script tag for each click
-        // if the initial script only runs once.
-        // Example:
-        // const newScript = document.createElement('script');
-        // newScript.dataset.zone = scriptElement.dataset.zone;
-        // newScript.src = scriptElement.src;
-        // document.body.appendChild(newScript);
-    } else {
-        alert("Popunder ad script not found or loaded.");
-    }
-};
 
 // --- Tabs Navigation ---
 window.showTab = function(tabId) {
