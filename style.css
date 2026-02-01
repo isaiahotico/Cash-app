@@ -1,0 +1,253 @@
+body {
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f0f2f5;
+    color: #333;
+    display: flex;
+    justify-content: center;
+    min-height: 100vh;
+}
+
+.container {
+    background-color: #fff;
+    width: 100%;
+    max-width: 600px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 20px;
+}
+
+header {
+    color: white;
+    padding: 20px;
+    text-align: center;
+    border-bottom: 1px solid #cceeff;
+}
+
+.sky-blue-bg {
+    background-color: #87ceeb; /* Sky blue */
+}
+
+header h1 {
+    margin: 0 0 10px 0;
+    font-size: 1.8em;
+}
+
+.balance-info {
+    margin-bottom: 15px;
+    font-size: 1.1em;
+}
+
+nav {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    margin-top: 15px;
+}
+
+.nav-button {
+    background-color: #6495ed; /* Cornflower Blue */
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    margin: 5px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: background-color 0.3s ease;
+}
+
+.nav-button:hover {
+    background-color: #4169e1; /* Royal Blue */
+}
+
+.nav-button.active {
+    background-color: #4169e1;
+    font-weight: bold;
+}
+
+main {
+    padding: 20px;
+}
+
+.content-section {
+    display: none;
+    padding: 15px;
+    border: 1px solid #eee;
+    border-radius: 5px;
+    margin-bottom: 15px;
+}
+
+.content-section.active {
+    display: block;
+}
+
+h2 {
+    color: #4682b4; /* Steel Blue */
+    margin-top: 0;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+
+.action-button {
+    background-color: #32cd32; /* Lime Green */
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1.1em;
+    margin-top: 15px;
+    transition: background-color 0.3s ease;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.action-button:hover {
+    background-color: #228b22; /* Forest Green */
+}
+
+input[type="text"],
+input[type="number"],
+input[type="password"] {
+    width: calc(100% - 22px);
+    padding: 10px;
+    margin-top: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 1em;
+}
+
+#chat-messages {
+    height: 200px;
+    border: 1px solid #ddd;
+    padding: 10px;
+    overflow-y: auto;
+    margin-bottom: 10px;
+    background-color: #f9f9f9;
+    border-radius: 5px;
+}
+
+.chat-message {
+    margin-bottom: 8px;
+    line-height: 1.4;
+}
+
+.chat-message strong {
+    color: #007bff;
+}
+
+#leaderboard-list,
+
+#withdrawal-history-list,
+#withdrawal-requests-list {
+    list-style: none;
+    padding: 0;
+}
+
+#leaderboard-list li,
+#withdrawal-history-list li,
+#withdrawal-requests-list li {
+    background-color: #e9f7ff;
+    padding: 10px;
+    margin-bottom: 8px;
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.95em;
+    flex-wrap: wrap; /* Allow items to wrap on smaller screens */
+}
+
+#leaderboard-list li:nth-child(odd) {
+    background-color: #f5fafd;
+}
+
+.admin-panel {
+    border: 1px solid #ccc;
+    padding: 15px;
+    border-radius: 5px;
+    background-color: #fcfcfc;
+    margin-bottom: 20px;
+}
+
+.admin-panel button {
+    background-color: #ff6347; /* Tomato */
+}
+
+.admin-panel button:hover {
+    background-color: #e55337;
+}
+
+.admin-request-item {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.admin-request-item button {
+    width: auto;
+    padding: 8px 12px;
+    font-size: 0.9em;
+    margin-top: 5px;
+}
+
+.admin-request-item .approve-btn {
+    background-color: #28a745;
+}
+.admin-request-item .approve-btn:hover {
+    background-color: #218838;
+}
+.admin-request-item .reject-btn {
+    background-color: #dc3545;
+}
+.admin-request-item .reject-btn:hover {
+    background-color: #c82333;
+}
+
+/* Sliding bar concept - for balance info or similar */
+.balance-info {
+    position: relative;
+    overflow: hidden;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+    padding: 10px;
+    margin-bottom: 15px;
+}
+
+.balance-info p {
+    margin: 0;
+    white-space: nowrap;
+    animation: slide-text 15s linear infinite; /* Adjust speed as needed */
+}
+
+@keyframes slide-text {
+    0% { transform: translateX(100%); }
+    100% { transform: translateX(-100%); }
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+    .container {
+        margin: 10px;
+        border-radius: 0;
+    }
+    nav {
+        flex-direction: column;
+    }
+    .nav-button {
+        width: 90%;
+        margin: 5px auto;
+    }
+}
+
+/* Specific styles for profile section */
+#profile-section p {
+    margin-bottom: 8px;
+}
+#profile-section input {
+    margin-bottom: 10px;
+}
