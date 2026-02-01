@@ -26,13 +26,19 @@ const telegramUsername = tg.initDataUnsafe?.user?.username || tg.initDataUnsafe?
 document.getElementById('telegramUsername').innerText = telegramUsername;
 
 let userBalance = 0;
+let userReferralsCount = 0;
+let userClaimableBonus = 0;
+
 const REWARD_PER_AD = 0.0065;
 const REWARD_PER_BONUS_AD = 0.0012;
+const REWARD_PER_REFERRAL = 0.01; // Bonus for referrer when new user applies their code
+
 const AD_COOLDOWN_SECONDS = 30; // 30 seconds
 const BONUS_AD_COOLDOWN_MINUTES = 10; // 10 minutes
 const IN_APP_INTERSTITIAL_COOLDOWN_MINUTES = 3; // 3 minutes
+const DONATION_AD_COOLDOWN_MINUTES = 5; // 5 minutes for native ad clicks
 
-// Monetag Rewarded Ad Zones
+// Monetag Rewarded Ad Zones (used for all rewarded/interstitial/popup ads)
 const MONETAG_REWARDED_ADS = [
     show_10276123, // Original
     show_10337795, // New #2
@@ -111,20 +117,20 @@ function updateCooldownDisplay(key, elementId, buttonId, durationSeconds, callba
     const timerElement = document.getElementById(elementId);
     const button = document.getElementById(buttonId);
 
-    if (!timerElement || !button) return; // Ensure elements exist
+    if (!timerElement && !button) return; // Ensure at least one element exists
 
     const interval = setInterval(() => {
         const expiry = getCooldown(key);
         const remaining = expiry - Date.now();
 
         if (remaining > 0) {
-            button.disabled = true;
+            if (button) button.disabled = true;
             const minutes = Math.floor((remaining / 1000 / 60) % 60);
             const seconds = Math.floor((remaining / 1000) % 60);
-            timerElement.innerText = `Cooldown: ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            if (timerElement) timerElement.innerText = `Cooldown: ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
         } else {
-            button.disabled = false;
-            timerElement.innerText = "";
+            if (button) button.disabled = false;
+            if (timerElement) timerElement.innerText = "";
             clearInterval(interval);
             if (callback) callback(); // Optional callback when cooldown ends
         }
@@ -137,18 +143,16 @@ async function initUser() {
     const snapshot = await get(userRef);
     
     if (!snapshot.exists()) {
-        // Check for double account (same Telegram ID)
-        // This is a basic check. More robust checks would involve server-side logic (e.g., IP, device fingerprint)
-        // but these have privacy implications and potential for false positives.
-        // For now, we ensure a unique entry per Telegram userId.
-        
-        const referralCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+        // Double account check: If a user with this userId already exists, don't create a new one.
+        // This is handled by Firebase security rules and the `userId` being the key.
+        // If the username is the referral code, we don't need a separate 'referralCode' field for the user.
+        // We will use the 'username' field itself as their referral code.
         await set(userRef, {
-            username: telegramUsername, // Use Telegram username
+            username: telegramUsername, // Use Telegram username as their referral code
             balance: 0,
-            referralCode: referralCode,
-            referralsCount: 0,
-            usedReferral: false,
+            referralsCount: 0, // Number of users who applied this user's code
+            claimableBonus: 0, // Bonus earned from referrals, to be claimed
+            usedReferral: false, // True if this user has applied someone else's referral code
             createdAt: serverTimestamp()
         });
     }
@@ -156,42 +160,61 @@ async function initUser() {
     onValue(userRef, (snap) => {
         const data = snap.val();
         userBalance = data.balance || 0;
-        document.getElementById('userBalance').innerText = `₱${userBalance.toFixed(4)}`; // Display more decimals for small amounts
-        document.getElementById('myReferralCode').innerText = data.referralCode; // Immediately display referral code
+        userReferralsCount = data.referralsCount || 0;
+        userClaimableBonus = data.claimableBonus || 0;
+
+        document.getElementById('userBalance').innerText = `₱${userBalance.toFixed(4)}`;
+        document.getElementById('telegramUsername').innerText = telegramUsername; // Ensure it's always up-to-date
+        document.getElementById('myReferralCode').innerText = telegramUsername; // Referral code is now Telegram username
+        document.getElementById('totalReferrals').innerText = userReferralsCount;
+        document.getElementById('claimableBonus').innerText = userClaimableBonus.toFixed(4);
+        
+        // Enable/disable claim button
+        const claimBtn = document.getElementById('claimReferralBonusBtn');
+        if (claimBtn) claimBtn.disabled = userClaimableBonus <= 0;
     });
 
     // Start cooldown timers
     updateCooldownDisplay('adCooldown', 'adCooldownTimer', 'watchAdBtn', AD_COOLDOWN_SECONDS);
     updateCooldownDisplay('bonusAdCooldown', 'bonusAdCooldownTimer', 'bonusAdBtn', BONUS_AD_COOLDOWN_MINUTES * 60);
+    updateCooldownDisplay('donationAd1Cooldown', 'donationAd1Cooldown', null, DONATION_AD_COOLDOWN_MINUTES * 60);
+    updateCooldownDisplay('donationAd2Cooldown', 'donationAd2Cooldown', null, DONATION_AD_COOLDOWN_MINUTES * 60);
+    updateCooldownDisplay('donationAd3Cooldown', 'donationAd3Cooldown', null, DONATION_AD_COOLDOWN_MINUTES * 60);
 
     // Show in-app interstitial on app open
     showInAppInterstitialOnOpen();
 }
 
 // --- Monetag Ad Logic ---
+function showRandomRewardedAd(type = 'interstitial') {
+    const randomAdFunction = MONETAG_REWARDED_ADS[Math.floor(Math.random() * MONETAG_REWARDED_ADS.length)];
+    if (typeof randomAdFunction === 'function') {
+        if (type === 'interstitial') {
+            return randomAdFunction();
+        } else if (type === 'popup') {
+            return randomAdFunction('pop');
+        }
+    }
+    return Promise.reject('Ad SDK not ready or function not found.');
+}
+
 window.watchAd = function() {
     if (getCooldown('adCooldown') > Date.now()) {
         alert("Please wait for the cooldown to finish.");
         return;
     }
 
-    const randomAdFunction = MONETAG_REWARDED_ADS[Math.floor(Math.random() * MONETAG_REWARDED_ADS.length)];
-
-    if (typeof randomAdFunction === 'function') {
-        randomAdFunction().then(() => {
-            const newBalance = userBalance + REWARD_PER_AD;
-            update(ref(db, 'users/' + userId), { balance: newBalance });
-            setCooldown('adCooldown', AD_COOLDOWN_SECONDS);
-            updateCooldownDisplay('adCooldown', 'adCooldownTimer', 'watchAdBtn', AD_COOLDOWN_SECONDS);
-            alert(`Congrats! You earned ₱${REWARD_PER_AD.toFixed(4)}`);
-            showPsychTip();
-        }).catch(e => {
-            console.error("Ad error:", e);
-            alert('Ad failed to load or was closed prematurely. Try again.');
-        });
-    } else {
-        alert('Ad SDK not ready or function not found.');
-    }
+    showRandomRewardedAd('interstitial').then(() => {
+        const newBalance = userBalance + REWARD_PER_AD;
+        update(ref(db, 'users/' + userId), { balance: newBalance });
+        setCooldown('adCooldown', AD_COOLDOWN_SECONDS);
+        updateCooldownDisplay('adCooldown', 'adCooldownTimer', 'watchAdBtn', AD_COOLDOWN_SECONDS);
+        alert(`Congrats! You earned ₱${REWARD_PER_AD.toFixed(4)}`);
+        showPsychTip();
+    }).catch(e => {
+        console.error("Ad error:", e);
+        alert('Ad failed to load or was closed prematurely. Try again.');
+    });
 };
 
 window.showRandomRewardedPopup = function() {
@@ -200,29 +223,22 @@ window.showRandomRewardedPopup = function() {
         return;
     }
 
-    const randomAdFunction = MONETAG_REWARDED_ADS[Math.floor(Math.random() * MONETAG_REWARDED_ADS.length)];
-
-    if (typeof randomAdFunction === 'function') {
-        randomAdFunction('pop').then(() => { // 'pop' for rewarded popup
-            const newBalance = userBalance + REWARD_PER_BONUS_AD;
-            update(ref(db, 'users/' + userId), { balance: newBalance });
-            setCooldown('bonusAdCooldown', BONUS_AD_COOLDOWN_MINUTES * 60);
-            updateCooldownDisplay('bonusAdCooldown', 'bonusAdCooldownTimer', 'bonusAdBtn', BONUS_AD_COOLDOWN_MINUTES * 60);
-            alert(`Bonus! You earned ₱${REWARD_PER_BONUS_AD.toFixed(4)}`);
-            showPsychTip();
-        }).catch(e => {
-            console.error("Popup Ad error:", e);
-            alert('Bonus Ad failed to load or was closed prematurely. Try again.');
-        });
-    } else {
-        alert('Ad SDK not ready or function not found.');
-    }
+    showRandomRewardedAd('popup').then(() => {
+        const newBalance = userBalance + REWARD_PER_BONUS_AD;
+        update(ref(db, 'users/' + userId), { balance: newBalance });
+        setCooldown('bonusAdCooldown', BONUS_AD_COOLDOWN_MINUTES * 60);
+        updateCooldownDisplay('bonusAdCooldown', 'bonusAdCooldownTimer', 'bonusAdBtn', BONUS_AD_COOLDOWN_MINUTES * 60);
+        alert(`Bonus! You earned ₱${REWARD_PER_BONUS_AD.toFixed(4)}`);
+        showPsychTip();
+    }).catch(e => {
+        console.error("Popup Ad error:", e);
+        alert('Bonus Ad failed to load or was closed prematurely. Try again.');
+    });
 };
 
 // In-App Interstitial on App Open
 function showInAppInterstitialOnOpen() {
     if (getCooldown('inAppInterstitialCooldown') > Date.now()) {
-        // console.log("In-App Interstitial is on cooldown.");
         return;
     }
 
@@ -243,6 +259,24 @@ function showInAppInterstitialOnOpen() {
         console.warn('Monetag In-App Interstitial SDK not ready.');
     }
 }
+
+// Donation Ad (Native Card Click)
+window.showDonationAd = function(cooldownKey) {
+    if (getCooldown(cooldownKey) > Date.now()) {
+        alert("Please wait for the cooldown to finish for this donation ad.");
+        return;
+    }
+
+    showRandomRewardedAd('interstitial').then(() => {
+        setCooldown(cooldownKey, DONATION_AD_COOLDOWN_MINUTES * 60);
+        updateCooldownDisplay(cooldownKey, cooldownKey + 'Cooldown', null, DONATION_AD_COOLDOWN_MINUTES * 60);
+        alert("Thank you for your donation! Your support helps us keep the app running!");
+    }).catch(e => {
+        console.error("Donation Ad error:", e);
+        alert('Donation Ad failed to load or was closed prematurely. Thank you for trying anyway!');
+    });
+};
+
 
 // --- Tabs Navigation ---
 window.showTab = function(tabId) {
@@ -428,52 +462,68 @@ window.updateWithdrawalStatus = async function(wdId, newStatus) {
 window.copyReferralCode = function() {
     const code = document.getElementById('myReferralCode').innerText;
     navigator.clipboard.writeText(code).then(() => {
-        alert("Referral code copied to clipboard!");
+        alert("Your Telegram username copied as referral code!");
     }).catch(err => {
         console.error('Failed to copy text: ', err);
         alert("Failed to copy code. Please copy manually.");
     });
 };
 
-window.claimReferral = async function() {
-    const code = document.getElementById('inputReferral').value.trim();
-    if (!code) return alert("Please enter a referral code.");
+window.applyReferral = async function() {
+    const referrerUsername = document.getElementById('inputReferral').value.trim();
+    if (!referrerUsername) return alert("Please enter referrer's Telegram username.");
 
     const userSnap = await get(ref(db, 'users/' + userId));
-    if(userSnap.val().usedReferral) return alert("You have already claimed a referral bonus.");
+    if(userSnap.val().usedReferral) return alert("You have already applied a referrer's code.");
 
     // Prevent self-referral
-    if (userSnap.val().referralCode === code) return alert("You cannot refer yourself.");
+    if (telegramUsername.toLowerCase() === referrerUsername.toLowerCase()) return alert("You cannot refer yourself.");
 
-    // Find the referrer
+    // Find the referrer by username
     const usersRef = ref(db, 'users');
-    const snapshot = await get(query(usersRef, orderByChild('referralCode'), equalTo(code)));
+    const snapshot = await get(query(usersRef, orderByChild('username'), equalTo(referrerUsername)));
     
     let referrerId = null;
     snapshot.forEach(child => {
-        if (child.val().referralCode === code) {
+        if (child.val().username.toLowerCase() === referrerUsername.toLowerCase()) {
             referrerId = child.key;
         }
     });
 
     if(referrerId) {
-        // Reward referrer 0.01
+        // Increment referrer's claimable bonus and referrals count
         const referrerRef = ref(db, 'users/' + referrerId);
         const referrerSnap = await get(referrerRef);
         const referrerData = referrerSnap.val();
 
         await update(referrerRef, { 
-            balance: (referrerData.balance || 0) + 0.01,
+            claimableBonus: (referrerData.claimableBonus || 0) + REWARD_PER_REFERRAL,
             referralsCount: (referrerData.referralsCount || 0) + 1
         });
         
         // Mark current user as having used a referral
         await update(ref(db, 'users/' + userId), { usedReferral: true });
 
-        alert(`Referral bonus claimed! ${referrerData.username} earned ₱0.01.`);
+        alert(`Referrer '${referrerUsername}' has received a bonus!`);
         document.getElementById('inputReferral').value = ''; // Clear input
     } else {
-        alert("Invalid or non-existent referral code.");
+        alert("Invalid or non-existent referrer Telegram username.");
+    }
+};
+
+window.claimReferralBonus = async function() {
+    if (userClaimableBonus <= 0) {
+        alert("You have no claimable referral bonus.");
+        return;
+    }
+
+    if (confirm(`Claim ₱${userClaimableBonus.toFixed(4)} referral bonus?`)) {
+        const newBalance = userBalance + userClaimableBonus;
+        await update(ref(db, 'users/' + userId), { 
+            balance: newBalance,
+            claimableBonus: 0 // Reset claimable bonus after claiming
+        });
+        alert(`₱${userClaimableBonus.toFixed(4)} claimed successfully and added to your balance!`);
     }
 };
 
