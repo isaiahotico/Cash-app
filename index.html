@@ -3,11 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PAPERHOUSE INC ADS</title>
+    <title>🎖🤑PAPERHOUSE INC ADS🤑🎖</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- Monetag SDK -->
+
+    <!-- Monetag SDKs -->
+    <!-- Rewarded Interstitial/Popup -->
     <script src='//libtl.com/sdk.js' data-zone='10276123' data-sdk='show_10276123'></script>
+    <script src='//libtl.com/sdk.js' data-zone='10337795' data-sdk='show_10337795'></script>
+    <script src='//libtl.com/sdk.js' data-zone='10337853' data-sdk='show_10337853'></script>
+
+    <!-- Monetag Native Ad (Vignette script as provided) -->
+    <!-- This script will load a vignette ad. If you want a traditional "native ad card", 
+         you'll need a different Monetag integration or custom ad unit. -->
+    <script id="nativeAdScript1" data-zone='10109465' src='https://groleegni.net/vignette.min.js'></script>
+    <script id="nativeAdScript2" data-zone='10109465' src='https://groleegni.net/vignette.min.js'></script>
+
+    <!-- Monetag Popunder Ads -->
+    <script id="popunderAdScript1" data-zone='10530027' src='https://al5sm.com/tag.min.js'></script>
+    <script id="popunderAdScript2" data-zone='10049581' src='https://al5sm.com/tag.min.js'></script>
+
     <style>
         .sky-gradient { background: linear-gradient(135deg, #0ea5e9, #38bdf8); }
         .tab-content { display: none; }
@@ -19,6 +34,7 @@
     <!-- Header -->
     <header class="sky-gradient text-white p-4 shadow-lg text-center rounded-b-3xl">
         <h1 class="text-xl font-bold italic">🎖🤑PAPERHOUSE INC ADS🤑🎖</h1>
+        <p class="text-sm">Welcome, <span id="telegramUsername" class="font-semibold">Guest</span>!</p>
         <p id="userBalance" class="text-2xl font-black mt-2">₱0.00</p>
     </header>
 
@@ -28,9 +44,29 @@
         <section id="earn" class="tab-content active space-y-4">
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-sky-100 text-center">
                 <h2 class="text-sky-600 font-bold mb-2">EARN REWARDS</h2>
-                <p class="text-gray-500 text-sm mb-4">Watch an ad to get ₱0.01</p>
-                <button onclick="watchAd()" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-4 rounded-xl transition transform active:scale-95 shadow-md">
+                <p class="text-gray-500 text-sm mb-4">Watch an ad to get ₱0.0065 (30s cooldown)</p>
+
+                <button id="watchAdBtn" onclick="watchAd()" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-4 rounded-xl transition transform active:scale-95 shadow-md">
                     📺 WATCH AD & CLAIM
+                </button>
+                <p id="adCooldownTimer" class="text-xs text-gray-400 mt-2"></p>
+            </div>
+
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-sky-100 text-center">
+                <h2 class="text-sky-600 font-bold mb-2">BONUS POPUP AD</h2>
+                <p class="text-gray-500 text-sm mb-4">Click for a chance to get ₱0.0012 (10min cooldown)</p>
+                <button id="bonusAdBtn" onclick="showRandomRewardedPopup()" class="w-full bg-purple-500 hover:bg-purple-600 text-white font-bold py-4 rounded-xl transition transform active:scale-95 shadow-md">
+                    ✨ GET BONUS AD
+                </button>
+                <p id="bonusAdCooldownTimer" class="text-xs text-gray-400 mt-2"></p>
+            </div>
+
+            <!-- Popunder Ad Button -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-sky-100 text-center">
+                <h2 class="text-sky-600 font-bold mb-2">OPEN POPUNDER AD</h2>
+                <p class="text-gray-500 text-sm mb-4">Click to open a new ad tab.</p>
+                <button onclick="showPopunderAd()" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 rounded-xl transition transform active:scale-95 shadow-md">
+                    🌐 OPEN POPUNDER
                 </button>
             </div>
 
@@ -39,6 +75,10 @@
                 <input id="gcashNumber" type="number" placeholder="GCash Number" class="w-full p-3 border rounded-lg mb-2">
                 <p class="text-xs text-gray-400 mb-2">Min. Withdraw: ₱0.02</p>
                 <button onclick="requestWithdrawal()" class="w-full bg-green-500 text-white py-2 rounded-lg font-bold">Withdraw Now</button>
+                <h4 class="font-bold text-gray-700 mt-4 mb-2">Withdrawal History</h4>
+                <div id="withdrawalHistory" class="space-y-2 text-sm">
+                    <p class="text-gray-400">No withdrawals yet.</p>
+                </div>
             </div>
         </section>
 
@@ -49,7 +89,6 @@
         </section>
 
         <!-- Chat Room -->
-
         <section id="chat" class="tab-content h-[60vh] flex flex-col">
             <div id="chatMessages" class="flex-grow overflow-y-auto bg-white p-4 rounded-xl shadow-inner mb-2 space-y-2"></div>
             <div class="flex gap-2">
@@ -64,6 +103,8 @@
                 <h2 class="text-sky-600 font-bold mb-2">REFERRAL SYSTEM</h2>
                 <p class="text-sm text-gray-500 mb-4">Share your code to earn bonuses!</p>
                 <div id="myReferralCode" class="text-2xl font-mono font-bold text-sky-700 bg-sky-50 p-3 rounded-lg border-dashed border-2 border-sky-200 mb-4">Loading...</div>
+
+<button onclick="copyReferralCode()" class="bg-sky-400 text-white px-3 py-1 rounded-lg text-sm mb-4">Copy Code</button>
                 <hr class="my-4">
                 <input id="inputReferral" type="text" placeholder="Paste referral code here" class="w-full p-3 border rounded-lg mb-2">
                 <button onclick="claimReferral()" class="w-full bg-sky-500 text-white py-2 rounded-lg font-bold">Claim Referral Bonus</button>
@@ -85,7 +126,7 @@
     </main>
 
     <!-- Bottom Navigation -->
-    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-sky-100 flex justify-around p-2 shadow-2xl">
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-sky-100 flex justify-around p-2 shadow-2xl z-10">
         <button onclick="showTab('earn')" class="text-sky-600 flex flex-col items-center text-xs"><span>🏠</span>Home</button>
         <button onclick="showTab('leaderboard')" class="text-sky-600 flex flex-col items-center text-xs"><span>🏆</span>Tops</button>
         <button onclick="showTab('chat')" class="text-sky-600 flex flex-col items-center text-xs"><span>💬</span>Chat</button>
