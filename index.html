@@ -18,6 +18,7 @@
          you'll need a different Monetag integration or custom ad unit. -->
     <script id="nativeAdScript1" data-zone='10109465' src='https://groleegni.net/vignette.min.js'></script>
     <script id="nativeAdScript2" data-zone='10109465' src='https://groleegni.net/vignette.min.js'></script>
+    <script id="nativeAdScript3" data-zone='10109465' src='https://groleegni.net/vignette.min.js'></script>
 
     <style>
         .sky-gradient { background: linear-gradient(135deg, #0ea5e9, #38bdf8); }
@@ -42,9 +43,11 @@
                 <h2 class="text-sky-600 font-bold mb-2">EARN REWARDS</h2>
                 <p class="text-gray-500 text-sm mb-4">Watch an ad to get ₱0.0065 (30s cooldown)</p>
                 <button id="watchAdBtn" onclick="watchAd()" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-4 rounded-xl transition transform active:scale-95 shadow-md">
+
                     📺 WATCH AD & CLAIM
                 </button>
-                <p id="adCooldownTimer" class="text-xs text-gray-400 mt-2"></p>            </div>
+                <p id="adCooldownTimer" class="text-xs text-gray-400 mt-2"></p>
+            </div>
 
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-sky-100 text-center">
                 <h2 class="text-sky-600 font-bold mb-2">BONUS POPUP AD</h2>
@@ -53,6 +56,25 @@
                     ✨ GET BONUS AD
                 </button>
                 <p id="bonusAdCooldownTimer" class="text-xs text-gray-400 mt-2"></p>
+            </div>
+
+            <!-- Native Ad Cards (Donation Ads) -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-sky-100 text-center cursor-pointer" onclick="showDonationAd('donationAd1')">
+                    <h3 class="font-bold text-sky-600">Support Us!</h3>
+                    <p class="text-sm text-gray-500">Click to view an ad and donate.</p>
+                    <p id="donationAd1Cooldown" class="text-xs text-gray-400 mt-1"></p>
+                </div>
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-sky-100 text-center cursor-pointer" onclick="showDonationAd('donationAd2')">
+                    <h3 class="font-bold text-sky-600">Help Develop!</h3>
+                    <p class="text-sm text-gray-500">Click to view an ad and contribute.</p>
+                    <p id="donationAd2Cooldown" class="text-xs text-gray-400 mt-1"></p>
+                </div>
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-sky-100 text-center cursor-pointer" onclick="showDonationAd('donationAd3')">
+                    <h3 class="font-bold text-sky-600">Keep it Free!</h3>
+                    <p class="text-sm text-gray-500">Click to view an ad and support.</p>
+                    <p id="donationAd3Cooldown" class="text-xs text-gray-400 mt-1"></p>
+                </div>
             </div>
 
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-sky-100">
@@ -77,20 +99,31 @@
         <section id="chat" class="tab-content h-[60vh] flex flex-col">
             <div id="chatMessages" class="flex-grow overflow-y-auto bg-white p-4 rounded-xl shadow-inner mb-2 space-y-2"></div>
             <div class="flex gap-2">
-                <input id="chatInput" type="text" placeholder="Type message..." class="flex-grow p-2 border rounded-lg">
+                <input id="chatInput" type="text" placeholder="Type message..." class="flex-grow p-2 border rounded-lg"
+
+>
                 <button onclick="sendMessage()" class="bg-sky-500 text-white px-4 py-2 rounded-lg">Send</button>
-            </div>        </section>
+            </div>
+        </section>
 
         <!-- Referral -->
         <section id="referral" class="tab-content">
             <div class="bg-white p-6 rounded-2xl text-center shadow-md">
                 <h2 class="text-sky-600 font-bold mb-2">REFERRAL SYSTEM</h2>
-                <p class="text-sm text-gray-500 mb-4">Share your code to earn bonuses!</p>
+                <p class="text-sm text-gray-500 mb-4">Share your Telegram username as your referral code!</p>
                 <div id="myReferralCode" class="text-2xl font-mono font-bold text-sky-700 bg-sky-50 p-3 rounded-lg border-dashed border-2 border-sky-200 mb-4">Loading...</div>
-                <button onclick="copyReferralCode()" class="bg-sky-400 text-white px-3 py-1 rounded-lg text-sm mb-4">Copy Code</button>
+                <button onclick="copyReferralCode()" class="bg-sky-400 text-white px-3 py-1 rounded-lg text-sm mb-4">Copy Username</button>
+                
                 <hr class="my-4">
-                <input id="inputReferral" type="text" placeholder="Paste referral code here" class="w-full p-3 border rounded-lg mb-2">
-                <button onclick="claimReferral()" class="w-full bg-sky-500 text-white py-2 rounded-lg font-bold">Claim Referral Bonus</button>
+                <div class="flex justify-between items-center mb-2">
+                    <p class="font-bold text-gray-700">Total Referrals: <span id="totalReferrals">0</span></p>
+                    <p class="font-bold text-gray-700">Claimable Bonus: ₱<span id="claimableBonus">0.00</span></p>
+                </div>
+                <button id="claimReferralBonusBtn" onclick="claimReferralBonus()" class="w-full bg-indigo-500 text-white py-2 rounded-lg font-bold">Claim Referral Bonus</button>
+                
+                <hr class="my-4">
+                <input id="inputReferral" type="text" placeholder="Enter referrer's Telegram Username" class="w-full p-3 border rounded-lg mb-2">
+                <button onclick="applyReferral()" class="w-full bg-sky-500 text-white py-2 rounded-lg font-bold">Apply Referrer</button>
             </div>
         </section>
 
