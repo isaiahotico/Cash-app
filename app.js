@@ -1,493 +1,544 @@
 
-/* app.js — type="module" */
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-import {
-  getFirestore, doc, setDoc, getDoc, onSnapshot, collection,
-  addDoc, query, where, orderBy, limit, updateDoc, serverTimestamp,
-  runTransaction, increment, getDocs // Import getDocs for queries
-} from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
-import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
-
-/* === CONFIG === */
+// Firebase Configuration (REPLACE WITH YOUR ACTUAL CONFIG)
 const firebaseConfig = {
-  apiKey: "AIzaSyBwpa8mA83JAv2A2Dj0rh5VHwodyv5N3dg",
-  authDomain: "freegcash-ads.firebaseapp.com",
-  projectId: "freegcash-ads",
-  storageBucket: "freegcash-ads.appspot.com",
-  messagingSenderId: "608086825364",
-  appId: "1:608086825364:web:3a8e628d231b52c6171781",
-  measurementId: "G-Z64B87ELGP"
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT_ID.appspot.com",
+    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+    appId: "YOUR_APP_ID"
 };
 
-const HIGH_REWARD = 0.0065;
-const RANDOM_REWARD = 0.0012;
-const HIGH_COOLDOWN_MS = 30 * 1000;
-const RANDOM_COOLDOWN_MS = 10 * 60 * 1000;
-const INITIAL_AD_COOLDOWN_MS = 3 * 60 * 1000; // 3 minutes
-const MIN_WITHDRAW = 1.00; // 1 piso
-const REFERRAL_BONUS_PERCENT = 0.10; // 10% of referral's earnings
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
 
-const AD_ZONES = ['show_10276123', 'show_10337795', 'show_10337853'];
+// --- DOM Elements ---
+const authSection = document.getElementById('auth-section');
+const appContent = document.getElementById('app-content');
+const userInfo = document.getElementById('user-info');
+const userNameElem = document.getElementById('userName');
+const userEmailElem = document.getElementById('userEmail');
+const userTelegramUsernameElem = document.getElementById('userTelegramUsername');
+const signInWithGoogleBtn = document.getElementById('signInWithGoogle');
+const signOutBtn = document.getElementById('signOut');
+const setTelegramUsernameBtn = document.getElementById('setTelegramUsernameBtn');
+const telegramUsernameModal = document.getElementById('telegramUsernameModal');
+const telegramUsernameInput = document.getElementById('telegramUsernameInput');
+const saveTelegramUsernameBtn = document.getElementById('saveTelegramUsername');
+const cancelTelegramUsernameBtn = document.getElementById('cancelTelegramUsername');
+const telegramErrorElem = document.getElementById('telegramError');
 
-/* === INIT FIREBASE === */
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
-signInAnonymously(auth).catch(console.error);
+const userBalanceElem = document.getElementById('userBalance');
+const watchAdBtn = document.getElementById('watchAdBtn');
+const adCooldownMessage = document.getElementById('adCooldownMessage');
+const showRandomPopupAdBtn = document.getElementById('showRandomPopupAdBtn');
+const popupAdCooldownMessage = document.getElementById('popupAdCooldownMessage');
+const psychologicalTipsContainer = document.getElementById('psychologicalTips');
 
-const tg = window.Telegram.WebApp;
-tg.expand();
+const userReferralCodeElem = document.getElementById('userReferralCode');
+const referralCodeInput = document.getElementById('referralCodeInput');
+const applyReferralCodeBtn = document.getElementById('applyReferralCodeBtn');
+const referralErrorElem = document.getElementById('referralError');
+const referralSuccessElem = document.getElementById('referralSuccess');
 
-let authUid = null;
-let userDocRef = null;
-let userData = {};
-let isAdminUIOpen = false;
+const withdrawalHistoryTableBody = document.querySelector('#withdrawalHistory tbody');
 
-/* --- UTIL --- */
-function getRandomAdZone() {
-  const idx = Math.floor(Math.random() * AD_ZONES.length);
-  return window[AD_ZONES[idx]];
+// --- Constants ---
+const REWARD_AD_AMOUNT = 0.0065; // PHP
+const REWARD_POPUP_AMOUNT = 0.0012; // PHP
+const REWARD_AD_COOLDOWN_MS = 30 * 1000; // 30 seconds
+const REWARD_POPUP_COOLDOWN_MS = 10 * 60 * 1000; // 10 minutes
+const REFERRAL_BONUS_PERCENTAGE = 0.08; // 8%
+
+// Monetag SDK functions (these are globally available after the script tags)
+// show_10337795() and show_10337853()
+
+// --- Global Variables ---
+let currentUser = null;
+let lastAdWatchTime = 0;
+let lastPopupAdTime = 0;
+
+// --- Psychological Tips (50 tips) ---
+const psychologicalTips = [
+    "Set clear, achievable goals to maintain motivation.",
+    "Practice positive self-talk to boost confidence.",
+    "Learn from failures; they are stepping stones to success.",
+    "Avoid comparing yourself to others; focus on your own progress.",
+    "Celebrate small wins to keep momentum going.",
+    "Visualize your success to reinforce your goals.",
+    "Break down large tasks into smaller, manageable steps.",
+    "Stay persistent; success often comes after many attempts.",
+    "Network with like-minded individuals for support and inspiration.",
+    "Educate yourself continuously to stay ahead.",
+    "Manage your time effectively to maximize productivity.",
+    "Prioritize tasks based on importance and urgency.",
+    "Delegate when possible to free up your time.",
+    "Take regular breaks to avoid burnout.",
+    "Maintain a healthy work-life balance.",
+    "Develop a strong work ethic.",
+    "Be adaptable to change and new opportunities.",
+    "Cultivate a growth mindset.",
+    "Seek feedback and use it for improvement.",
+    "Don't be afraid to ask for help.",
+    "Practice gratitude to improve your outlook.",
+    "Stay organized to reduce stress.",
+    "Automate repetitive tasks.",
+    "Invest in yourself through learning and development.",
+    "Understand your target audience deeply.",
+    "Build a strong personal brand.",
+    "Master the art of negotiation.",
+    "Learn to say no to distractions.",
+    "Focus on providing value to others.",
+    "Be patient; success rarely happens overnight.",
+    "Develop strong communication skills.",
+    "Listen actively to understand better.",
+    "Practice empathy in your interactions.",
+    "Be decisive when necessary.",
+    "Learn from your mistakes, but don't dwell on them.",
+    "Maintain a positive attitude, even in challenges.",
+    "Surround yourself with positive influences.",
+    "Set boundaries to protect your time and energy.",
+    "Review your progress regularly.",
+    "Stay disciplined in your routines.",
+    "Understand the power of compounding in finance.",
+    "Diversify your income streams.",
+    "Save and invest consistently.",
+    "Avoid impulsive spending.",
+    "Create a budget and stick to it.",
+    "Understand market trends.",
+    "Learn about different investment vehicles.",
+    "Protect your assets.",
+    "Seek financial advice from experts.",
+    "Continuously look for opportunities to increase your value."
+];
+
+function getRandomTips(count = 5) {
+    const shuffled = [...psychologicalTips].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, count);
 }
 
-function formatMoney(n) {
-  return parseFloat(n).toFixed(4);
+function displayPsychologicalTips() {
+    const tips = getRandomTips(5); // Display 5 random tips
+    psychologicalTipsContainer.innerHTML = '<h3>Psychological Tips for Earning:</h3><ul>' +
+        tips.map(tip => `<li>${tip}</li>`).join('') +
+        '</ul>';
+    psychologicalTipsContainer.style.display = 'block';
+    setTimeout(() => {
+        psychologicalTipsContainer.style.display = 'none';
+    }, 15000); // Hide after 15 seconds
 }
 
-// --- Initial Telegram User Data ---
-// Get Telegram user data immediately on load
-const tUser = tg.initDataUnsafe?.user || { id: `tg_${Date.now()}`, first_name: 'User', username: null };
-const tgId = tUser.id?.toString();
-const currentDisplayName = tUser.username ? `@${tUser.username}` : (tUser.first_name || 'Anonymous');
-// Use Telegram username as referral code if available, otherwise Firebase UID (will be set later)
-let currentReferralCode = tUser.username ? tUser.username.toLowerCase() : null; 
 
-// Display initial Telegram user data immediately
-document.getElementById('user-display').innerText = currentDisplayName;
-// If referral code is not yet set (because authUid is null), display a placeholder
-document.getElementById('my-ref-code').innerText = currentReferralCode || 'Loading...';
+// --- Utility Functions ---
+function formatCurrency(amount) {
+    return amount.toFixed(4) + ' PHP'; // Display 4 decimal places for precision
+}
 
-
-/* === AUTH STATE === */
-onAuthStateChanged(auth, async (user) => {
-  if (!user) return;
-  authUid = user.uid;
-
-  // If currentReferralCode was null, set it to authUid now
-  if (!currentReferralCode) {
-    currentReferralCode = authUid;
-    document.getElementById('my-ref-code').innerText = currentReferralCode;
-  }
-
-  userDocRef = doc(db, 'users', authUid);
-
-  // Check telegram index for duplicates
-  const tgIndexRef = doc(db, 'telegramIndex', tgId);
-
-  // Create or initialize user atomically:
-  const existingUserSnap = await getDoc(userDocRef);
-  const tgIndexSnap = await getDoc(tgIndexRef);
-
-  // Duplicate detection: if telegramIndex maps to another uid -> mark duplicate
-  let isDuplicate = false;
-  if (tgIndexSnap.exists()) {
-    const mappedUid = tgIndexSnap.data().uid;
-    if (mappedUid !== authUid) {
-      isDuplicate = true;
+function generateReferralCode() {
+    const chars = '0123456789';
+    let result = '';
+    for (let i = 0; i < 6; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
     }
-  } else {
-    // try to set index (best-effort, not strictly atomic across clients)
-    await setDoc(tgIndexRef, { uid: authUid, createdAt: serverTimestamp() }).catch(() => {});
-  }
+    return result;
+}
 
-  if (!existingUserSnap.exists()) {
-    await setDoc(userDocRef, {
-      authUid,
-      telegramId: tgId,
-      username: currentDisplayName, // Store current Telegram display name
-      referralCode: currentReferralCode, // Store current referral code
-      refBy: null, // Who referred this user
-      refCount: 0, // How many users this user referred
-      refBonus: 0, // Earned bonus from referrals
-      balance: 0,
-      totalAds: 0,
-      lastHighReward: 0,
-      lastRandomReward: 0,
-      lastInitialAd: 0,
-      isDuplicate,
-      isBanned: !!isDuplicate,
-      createdAt: serverTimestamp()
-    });
-  } else {
-    // If user exists, update their username and referralCode in case it changed
-    const existing = existingUserSnap.data();
-    const updates = {};
-    if (existing.telegramId && existing.telegramId !== tgId) {
-      // Another telegram id linked — keep as-is but set duplicate flag
-      updates.isDuplicate = true;
-      updates.isBanned = true;
-    }
-    // Only update if the value from Telegram is different from what's in Firestore
-    if (existing.username !== currentDisplayName) {
-      updates.username = currentDisplayName;
-    }
-    if (existing.referralCode !== currentReferralCode) {
-      updates.referralCode = currentReferralCode;
-    }
-    if (Object.keys(updates).length > 0) {
-      await updateDoc(userDocRef, updates).catch(()=>{});
-    }
-  }
+function updateCooldownMessages() {
+    const now = Date.now();
 
-  // Start listening user document
-  onSnapshot(userDocRef, (snap) => {
-    if (!snap.exists()) return;
-    userData = snap.data();
-    document.getElementById('user-balance').innerText = formatMoney(userData.balance || 0);
-    document.getElementById('total-ads').innerText = (userData.totalAds || 0);
-    document.getElementById('txt-ref-c').innerText = (userData.refCount || 0);
-    document.getElementById('txt-ref-b').innerText = `₱${formatMoney(userData.refBonus || 0)}`;
-
-    // Disable bind button if already referred
-    const bindBtn = document.querySelector('#home .glass button.btn-grad'); // More specific selector
-    const refBinderInput = document.getElementById('ref-binder');
-    if (userData.refBy) {
-      refBinderInput.value = userData.refBy;
-      refBinderInput.disabled = true;
-      bindBtn.disabled = true;
-      bindBtn.innerText = 'BOUND';
+    // Ad Cooldown
+    const nextAdAvailableTime = lastAdWatchTime + REWARD_AD_COOLDOWN_MS;
+    if (now < nextAdAvailableTime) {
+        const remainingSeconds = Math.ceil((nextAdAvailableTime - now) / 1000);
+        adCooldownMessage.textContent = `Next ad in ${remainingSeconds} seconds.`;
+        watchAdBtn.disabled = true;
     } else {
-      refBinderInput.disabled = false;
-      bindBtn.disabled = false;
-      bindBtn.innerText = 'BIND';
+        adCooldownMessage.textContent = '';
+        watchAdBtn.disabled = false;
     }
 
-    // If banned, warn
-    if (userData.isBanned) {
-      tg.showAlert("Account flagged as duplicate/ banned. Contact admin.");
+    // Popup Ad Cooldown
+    const nextPopupAvailableTime = lastPopupAdTime + REWARD_POPUP_COOLDOWN_MS;
+    if (now < nextPopupAvailableTime) {
+        const remainingMinutes = Math.ceil((nextPopupAvailableTime - now) / (60 * 1000));
+        popupAdCooldownMessage.textContent = `Next popup ad in ${remainingMinutes} minutes.`;
+        showRandomPopupAdBtn.disabled = true;
+    } else {
+        popupAdCooldownMessage.textContent = '';
+        showRandomPopupAdBtn.disabled = false;
     }
-    // Show initial ad if cooldown passed
-    tryShowInitialAd();
-  });
+}
 
-  // Start listeners for chat/leaderboard/withdrawals
-  setupRealtimeListeners();
+setInterval(updateCooldownMessages, 1000); // Update cooldown messages every second
+
+// --- Firebase Authentication ---
+auth.onAuthStateChanged(async (user) => {
+    currentUser = user;
+    if (user) {
+        authSection.style.display = 'none';
+        appContent.style.display = 'block';
+        userInfo.style.display = 'block';
+        userNameElem.textContent = user.displayName || 'User';
+        userEmailElem.textContent = user.email;
+
+        // Fetch or create user document in Firestore
+        const userRef = db.collection('users').doc(user.uid);
+        const doc = await userRef.get();
+
+        if (!doc.exists) {
+            // New user, create document
+            const newReferralCode = generateReferralCode();
+            await userRef.set({
+                email: user.email,
+                displayName: user.displayName,
+                balance: 0,
+                referralCode: newReferralCode,
+                referredBy: null,
+                telegramUsername: null,
+                lastAdWatch: 0,
+                lastPopupAd: 0,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            userBalanceElem.textContent = formatCurrency(0);
+            userReferralCodeElem.textContent = newReferralCode;
+            userTelegramUsernameElem.textContent = 'Not set';
+        } else {
+            // Existing user, update UI
+            const userData = doc.data();
+            userBalanceElem.textContent = formatCurrency(userData.balance || 0);
+            userReferralCodeElem.textContent = userData.referralCode || 'N/A';
+            userTelegramUsernameElem.textContent = userData.telegramUsername || 'Not set';
+            lastAdWatchTime = userData.lastAdWatch || 0;
+            lastPopupAdTime = userData.lastPopupAd || 0;
+        }
+
+        // Listen for real-time updates to user data
+        userRef.onSnapshot((snapshot) => {
+            if (snapshot.exists) {
+                const userData = snapshot.data();
+                userBalanceElem.textContent = formatCurrency(userData.balance || 0);
+                userTelegramUsernameElem.textContent = userData.telegramUsername || 'Not set';
+                userReferralCodeElem.textContent = userData.referralCode || 'N/A';
+                lastAdWatchTime = userData.lastAdWatch || 0;
+                lastPopupAdTime = userData.lastPopupAd || 0;
+                updateCooldownMessages(); // Update immediately on data change
+            }
+        });
+
+        loadWithdrawalHistory(user.uid);
+
+    } else {
+        authSection.style.display = 'block';
+        appContent.style.display = 'none';
+        userInfo.style.display = 'none';
+        userBalanceElem.textContent = formatCurrency(0);
+        userReferralCodeElem.textContent = 'Loading...';
+        withdrawalHistoryTableBody.innerHTML = '';
+        lastAdWatchTime = 0;
+        lastPopupAdTime = 0;
+        updateCooldownMessages();
+    }
 });
 
-/* === REALTIME LISTENERS === */
-function setupRealtimeListeners() {
-  // Leaderboard: top 10 by balance
-  const lbQuery = query(collection(db, 'users'), orderBy('balance', 'desc'), limit(10));
-  onSnapshot(lbQuery, (snap) => {
-    const el = document.getElementById('leaderboard-list');
-    el.innerHTML = '';
-    snap.forEach(docSnap => {
-      const d = docSnap.data();
-      const highlight = (docSnap.id === authUid) ? 'border-2 border-sky-500' : '';
-      el.innerHTML += `<div class="glass p-3 ${highlight} flex justify-between"><div>${d.username}</div><div>₱${formatMoney(d.balance||0)}</div></div>`;
-    });
-  });
+signInWithGoogleBtn.addEventListener('click', () => {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider)
+        .catch((error) => {
+            console.error("Google Sign-In Error:", error);
+            alert("Error signing in with Google: " + error.message);
+        });
+});
 
-  // Chat
-  const chatQuery = query(collection(db, 'chat'), orderBy('createdAt', 'asc'));
-  onSnapshot(chatQuery, (snap) => {
-    const box = document.getElementById('chat-box');
-    box.innerHTML = '';
-    snap.forEach(docSnap => {
-      const m = docSnap.data();
-      // Format timestamp for display
-      const date = m.createdAt?.toDate ? m.createdAt.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-      box.innerHTML += `<div class="p-2 bg-blue-50 rounded-md"><b>${m.user}</b> <span class="text-gray-500 text-xs">${date}</span>: ${m.text}</div>`;
-    });
-    box.scrollTop = box.scrollHeight; // Auto-scroll to bottom
-  });
+signOutBtn.addEventListener('click', () => {
+    auth.signOut()
+        .then(() => {
+            alert("Signed out successfully!");
+        })
+        .catch((error) => {
+            console.error("Sign Out Error:", error);
+            alert("Error signing out: " + error.message);
+        });
+});
 
-  // User's withdrawals
-  const wQuery = query(collection(db, 'withdrawals'), where('authUid', '==', authUid), orderBy('createdAt', 'desc'));
-  onSnapshot(wQuery, (snap) => {
-    const el = document.getElementById('withdrawal-history');
-    el.innerHTML = '';
-    snap.forEach(docSnap => {
-      const w = docSnap.data();
-      const date = w.createdAt?.toDate ? w.createdAt.toDate().toLocaleString() : '';
-      const statusClass = w.status === 'Paid' ? 'text-green-600' : (w.status === 'Pending' ? 'text-orange-500' : 'text-red-600');
-      el.innerHTML += `<div class="p-2 border-b flex justify-between"><div><div class="font-bold">₱${parseFloat(w.amount).toFixed(4)} → ${w.gcash}</div><div class="text-xs text-gray-500">${date}</div></div><div class="${statusClass} font-semibold">${w.status}</div></div>`;
-    });
-  });
+// --- Telegram Username Management ---
+setTelegramUsernameBtn.addEventListener('click', () => {
+    telegramUsernameInput.value = userTelegramUsernameElem.textContent === 'Not set' ? '' : userTelegramUsernameElem.textContent;
+    telegramUsernameModal.style.display = 'flex';
+    telegramErrorElem.textContent = '';
+});
 
-  // Admin view for withdrawals (if admin UI open we will query all)
-}
+cancelTelegramUsernameBtn.addEventListener('click', () => {
+    telegramUsernameModal.style.display = 'none';
+});
 
-/* === ADS: initial auto interstitial (cooldown 3min) === */
-function tryShowInitialAd() {
-  if (!userData) return;
-  const last = userData.lastInitialAd || 0;
-  const now = Date.now();
-  if (now - last < INITIAL_AD_COOLDOWN_MS) return; // still in cooldown
-
-  const adFunc = getRandomAdZone();
-  try {
-    adFunc({
-      type: 'inApp',
-      inAppSettings: { frequency: 1, capping: 0.1, interval: 30, timeout: 5, everyPage: false }
-    });
-    // Update lastInitialAd
-    updateDoc(userDocRef, { lastInitialAd: now }).catch(()=>{});
-  } catch(e) {
-    console.error('Initial ad show failed', e);
-    // No alert for initial ad as it's background
-  }
-}
-
-/* === AD REWARD FUNCTIONS === */
-async function processAdReward(rewardAmount) {
-  const now = Date.now();
-  const updates = {
-    balance: increment(rewardAmount),
-    totalAds: increment(1),
-  };
-
-  // If user was referred, give bonus to referrer
-  if (userData.refBy) {
-    const referrerUsername = userData.refBy;
-    // Query by referralCode (which is the username)
-    const referrerQuerySnapshot = await getDocs(query(collection(db, 'users'), where('referralCode', '==', referrerUsername), limit(1)));
-    
-    if (!referrerQuerySnapshot.empty) {
-      const referrerDocRef = referrerQuerySnapshot.docs[0].ref;
-      const bonus = rewardAmount * REFERRAL_BONUS_PERCENT;
-      await updateDoc(referrerDocRef, { refBonus: increment(bonus) });
+saveTelegramUsernameBtn.addEventListener('click', async () => {
+    const username = telegramUsernameInput.value.trim();
+    if (!username) {
+        telegramErrorElem.textContent = 'Telegram username cannot be empty.';
+        return;
     }
-  }
-  
-  await updateDoc(userDocRef, updates);
-  tg.showAlert(`You earned ₱${rewardAmount.toFixed(4)}!`);
-}
-
-
-window.watchHighRewardAd = async function() {
-  if (!userData || userData.isBanned) return tg.showAlert('Account is banned or not ready.');
-  const now = Date.now();
-  if ((now - (userData.lastHighReward || 0)) < HIGH_COOLDOWN_MS) return tg.showAlert('Wait 30s cooldown.');
-
-  const ad = getRandomAdZone();
-  tg.MainButton.setText('LOADING AD...').show();
-
-  try {
-    const adResult = await ad(); // Monetag SDK might return a promise or value
-    if (adResult && adResult.status === 'error') { // Check if Monetag ad failed
-        throw new Error('Monetag ad failed to load or show.');
+    if (!username.startsWith('@')) {
+        telegramErrorElem.textContent = 'Telegram username must start with "@".';
+        return;
     }
-    await updateDoc(userDocRef, { lastHighReward: now }); // Update last ad time first
-    await processAdReward(HIGH_REWARD); // Then process reward and referral
-    tg.MainButton.hide();
-  } catch (e) {
-    tg.MainButton.hide();
-    console.error('High reward ad failed:', e);
-    tg.showAlert('Ad failed or skipped. Please try again later.');
-  }
-};
 
-window.watchRandomRewardAd = async function() {
-  if (!userData || userData.isBanned) return tg.showAlert('Account is banned or not ready.');
-  const now = Date.now();
-  if ((now - (userData.lastRandomReward || 0)) < RANDOM_COOLDOWN_MS) return tg.showAlert('Wait 10min cooldown.');
-
-  const ad = getRandomAdZone();
-  tg.MainButton.setText('LOADING POP...').show();
-
-  try {
-    const adResult = await ad('pop'); // Monetag SDK might return a promise or value
-    if (adResult && adResult.status === 'error') { // Check if Monetag ad failed
-        throw new Error('Monetag ad failed to load or show.');
+    if (currentUser) {
+        try {
+            await db.collection('users').doc(currentUser.uid).update({
+                telegramUsername: username
+            });
+            userTelegramUsernameElem.textContent = username;
+            telegramUsernameModal.style.display = 'none';
+            alert('Telegram username updated successfully!');
+        } catch (error) {
+            console.error('Error updating Telegram username:', error);
+            telegramErrorElem.textContent = 'Failed to update username. Please try again.';
+        }
     }
-    await updateDoc(userDocRef, { lastRandomReward: now }); // Update last ad time first
-    await processAdReward(RANDOM_REWARD); // Then process reward and referral
-    tg.MainButton.hide();
-  } catch (e) {
-    tg.MainButton.hide();
-    console.error('Random reward ad failed:', e);
-    tg.showAlert('Popup ad failed or skipped. Please try again later.');
-  }
-};
+});
 
-/* === REFERRAL FUNCTIONS === */
-window.bindReferrer = async function() {
-  if (!userData || userData.isBanned) return tg.showAlert('Account is banned or not ready.');
-  const referrerCode = document.getElementById('ref-binder').value.trim().toLowerCase();
 
-  if (!referrerCode) return tg.showAlert('Please enter a referrer code.');
-  if (referrerCode === userData.referralCode) return tg.showAlert("You cannot refer yourself.");
-  if (userData.refBy) return tg.showAlert("You are already referred by someone.");
+// --- Monetag Ad Integration ---
 
-  // Find referrer by their referralCode
-  const referrerQuerySnapshot = await getDocs(query(collection(db, 'users'), where('referralCode', '==', referrerCode), limit(1)));
-  
-  if (!referrerQuerySnapshot.empty) {
-    const referrerDocRef = referrerQuerySnapshot.docs[0].ref;
-    
+// Function to handle rewarding the user
+async function rewardUser(amount, adType, referrerId = null) {
+    if (!currentUser) {
+        alert("You must be logged in to earn rewards.");
+        return;
+    }
+
+    const userRef = db.collection('users').doc(currentUser.uid);
+    const userDoc = await userRef.get();
+    if (!userDoc.exists) {
+        console.error("User document not found.");
+        return;
+    }
+
+    const userData = userDoc.data();
+    let finalRewardAmount = amount;
+
+    // Use a transaction to ensure atomicity
     try {
-      await runTransaction(db, async (tx) => {
-        // Update current user's refBy
-        tx.update(userDocRef, { refBy: referrerCode });
-        // Increment referrer's refCount
-        tx.update(referrerDocRef, { refCount: increment(1) });
-      });
-      tg.showAlert(`Successfully bound to referrer: ${referrerCode}`);
-    } catch (e) {
-      console.error("Error binding referrer:", e);
-      tg.showAlert("Failed to bind referrer. Please try again.");
+        await db.runTransaction(async (transaction) => {
+            const currentBalance = (await transaction.get(userRef)).data().balance || 0;
+            const newBalance = currentBalance + finalRewardAmount;
+
+            transaction.update(userRef, {
+                balance: newBalance,
+                lastAdWatch: adType === 'rewardedAd' ? Date.now() : userData.lastAdWatch,
+                lastPopupAd: adType === 'rewardedPopup' ? Date.now() : userData.lastPopupAd,
+            });
+
+            // If user has a referrer, reward the referrer
+            if (userData.referredBy) {
+                const referrerRef = db.collection('users').doc(userData.referredBy);
+                const referrerDoc = await transaction.get(referrerRef);
+
+                if (referrerDoc.exists) {
+                    const referrerBonus = amount * REFERRAL_BONUS_PERCENTAGE;
+                    const currentReferrerBalance = referrerDoc.data().balance || 0;
+                    transaction.update(referrerRef, {
+                        balance: currentReferrerBalance + referrerBonus
+                    });
+                    console.log(`Referrer ${userData.referredBy} rewarded with ${referrerBonus.toFixed(4)}`);
+
+                    // Log referral bonus transaction (optional)
+                    db.collection('transactions').add({
+                        userId: userData.referredBy,
+                        type: 'referral_bonus',
+                        amount: referrerBonus,
+                        fromUser: currentUser.uid,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                }
+            }
+
+            // Log the reward transaction
+            db.collection('transactions').add({
+                userId: currentUser.uid,
+                type: adType,
+                amount: finalRewardAmount,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            userBalanceElem.textContent = formatCurrency(newBalance);
+            alert(`You earned ${formatCurrency(finalRewardAmount)}!`);
+            displayPsychologicalTips(); // Show tips after reward
+        });
+    } catch (error) {
+        console.error("Transaction failed: ", error);
+        alert("Failed to process reward. Please try again.");
     }
-  } else {
-    tg.showAlert("Referrer not found. Please check the code.");
-  }
-};
-
-window.claimBonus = async function() {
-  if (!userData || userData.isBanned) return tg.showAlert('Account is banned or not ready.');
-  if ((userData.refBonus || 0) <= 0) return tg.showAlert("No bonus to claim.");
-
-  try {
-    await runTransaction(db, async (tx) => {
-      const uSnap = await tx.get(userDocRef);
-      if (!uSnap.exists()) throw 'User doc missing';
-      const currentRefBonus = uSnap.data().refBonus || 0;
-      if (currentRefBonus <= 0) throw 'No bonus to claim';
-
-      tx.update(userDocRef, {
-        balance: increment(currentRefBonus),
-        refBonus: 0
-      });
-    });
-    tg.showAlert(`Claimed ₱${formatMoney(userData.refBonus)} from bonus pool!`);
-  } catch (e) {
-    console.error("Error claiming bonus:", e);
-    tg.showAlert("Failed to claim bonus. Please try again.");
-  }
-};
-
-/* === CHAT SEND === */
-window.sendMessage = async function() {
-  const text = document.getElementById('chat-input').value.trim();
-  if (!text) return;
-  const displayName = userData.username || 'Unknown';
-  await addDoc(collection(db, 'chat'), { user: displayName, text, createdAt: serverTimestamp() });
-  document.getElementById('chat-input').value = '';
-};
-
-/* === WITHDRAWALS === */
-window.requestWithdrawal = async function() {
-  const gcash = document.getElementById('gcash-num').value.trim();
-  const amount = parseFloat(document.getElementById('wd-amount').value);
-  if (!gcash || gcash.length < 10) return tg.showAlert('Enter valid GCash number.');
-  if (!amount || amount < MIN_WITHDRAW) return tg.showAlert(`Minimum withdrawal is ₱${MIN_WITHDRAW.toFixed(2)}.`);
-  if (amount > (userData.balance || 0)) return tg.showAlert('Insufficient balance.');
-
-  // Create withdrawal doc with status Pending and deduct balance using transaction
-  try {
-    await runTransaction(db, async (tx) => {
-      const uRef = userDocRef;
-      const uSnap = await tx.get(uRef);
-      if (!uSnap.exists()) throw 'User doc missing';
-      const curBal = uSnap.data().balance || 0;
-      if (curBal < amount) throw 'Insufficient balance';
-      // deduct
-      tx.update(uRef, { balance: curBal - amount });
-      // create withdrawal
-      const wRef = collection(db, 'withdrawals');
-      tx.set(doc(wRef), {
-        authUid,
-        telegramId: userData.telegramId || null,
-        username: userData.username || null,
-        gcash,
-        amount: parseFloat(amount.toFixed(4)),
-        status: 'Pending',
-        createdAt: serverTimestamp()
-      });
-    });
-    tg.showAlert('Withdrawal requested. Await admin approval.');
-  } catch (e) {
-    console.error(e);
-    tg.showAlert('Error creating withdrawal: ' + (e.message || e));
-  }
 }
 
-/* === ADMIN UI & ACTIONS === */
-window.checkAdmin = async function() {
-  const pass = document.getElementById('admin-pass').value;
-  // IMPORTANT: Replace 'Propetas12' with a secure, server-side verified password or admin UID check.
-  // For production, DO NOT hardcode passwords here.
-  if (pass !== 'Propetas12') return alert('Wrong password');
 
-  // show admin content
-  document.getElementById('admin-login').classList.add('hidden');
-  document.getElementById('admin-content').classList.remove('hidden');
-  isAdminUIOpen = true;
-  loadAllWithdrawalsForAdmin();
-};
+// Rewarded Interstitial Ad (Monetag #2)
+watchAdBtn.addEventListener('click', async () => {
+    if (!currentUser) {
+        alert("Please sign in to watch ads.");
+        return;
+    }
+    if (Date.now() < lastAdWatchTime + REWARD_AD_COOLDOWN_MS) {
+        alert("Please wait for the cooldown to finish.");
+        return;
+    }
 
-async function loadAllWithdrawalsForAdmin() {
-  const wCol = collection(db, 'withdrawals');
-  const q = query(wCol, orderBy('createdAt', 'desc'));
-  onSnapshot(q, (snap) => {
-    const list = document.getElementById('withdrawal-list');
-    list.innerHTML = '';
-    snap.forEach(docSnap => {
-      const w = docSnap.data();
-      const id = docSnap.id;
-      const date = w.createdAt?.toDate ? w.createdAt.toDate().toLocaleString() : '';
-      let controls = '';
-      if (w.status === 'Pending') {
-        controls = `<button onclick="adminApprove('${id}')" class="bg-green-600 text-white px-2 py-1 rounded mr-2">Approve</button>
-                    <button onclick="adminReject('${id}')" class="bg-red-600 text-white px-2 py-1 rounded">Reject & Refund</button>`;
-      } else {
-        controls = `<span class="text-sm">${w.status}</span>`;
-      }
-      list.innerHTML += `<div class="p-3 border rounded-md"><div class="flex justify-between"><div><b>₱${parseFloat(w.amount).toFixed(4)}</b> → ${w.gcash}<div class="text-xs text-gray-500">${w.username} • ${date}</div></div><div>${controls}</div></div></div>`;
-    });
-  });
+    watchAdBtn.disabled = true;
+    adCooldownMessage.textContent = 'Loading ad...';
+
+    try {
+        // Use the first Monetag zone for rewarded interstitial
+        await show_10337795();
+        await rewardUser(REWARD_AD_AMOUNT, 'rewardedAd');
+        lastAdWatchTime = Date.now(); // Update locally for immediate cooldown
+    } catch (e) {
+        console.error("Rewarded Ad Error:", e);
+        alert("Ad failed or was not completed. No reward given.");
+    } finally {
+        watchAdBtn.disabled = false;
+        updateCooldownMessages();
+    }
+});
+
+// Rewarded Popup Ad (Monetag #3)
+showRandomPopupAdBtn.addEventListener('click', async () => {
+    if (!currentUser) {
+        alert("Please sign in to watch ads.");
+        return;
+    }
+    if (Date.now() < lastPopupAdTime + REWARD_POPUP_COOLDOWN_MS) {
+        alert("Please wait for the cooldown to finish.");
+        return;
+    }
+
+    showRandomPopupAdBtn.disabled = true;
+    popupAdCooldownMessage.textContent = 'Loading popup ad...';
+
+    try {
+        // Use the second Monetag zone for rewarded popup
+        await show_10337853('pop');
+        await rewardUser(REWARD_POPUP_AMOUNT, 'rewardedPopup');
+        lastPopupAdTime = Date.now(); // Update locally for immediate cooldown
+    } catch (e) {
+        console.error("Rewarded Popup Ad Error:", e);
+        alert("Popup ad failed or was not completed. No reward given.");
+    } finally {
+        showRandomPopupAdBtn.disabled = false;
+        updateCooldownMessages();
+    }
+});
+
+
+// --- Referral System ---
+applyReferralCodeBtn.addEventListener('click', async () => {
+    if (!currentUser) {
+        alert("Please sign in to apply a referral code.");
+        return;
+    }
+
+    const code = referralCodeInput.value.trim();
+    if (!code) {
+        referralErrorElem.textContent = "Please enter a referral code.";
+        return;
+    }
+
+    referralErrorElem.textContent = '';
+    referralSuccessElem.textContent = '';
+    applyReferralCodeBtn.disabled = true;
+
+    try {
+        const userRef = db.collection('users').doc(currentUser.uid);
+        const userDoc = await userRef.get();
+        const userData = userDoc.data();
+
+        if (userData.referredBy) {
+            referralErrorElem.textContent = "You have already been referred by someone.";
+            return;
+        }
+        if (userData.referralCode === code) {
+            referralErrorElem.textContent = "You cannot refer yourself.";
+            return;
+        }
+
+        const referrerQuery = await db.collection('users').where('referralCode', '==', code).limit(1).get();
+
+        if (referrerQuery.empty) {
+            referralErrorElem.textContent = "Invalid referral code.";
+            return;
+        }
+
+        const referrerDoc = referrerQuery.docs[0];
+        const referrerId = referrerDoc.id;
+
+        await userRef.update({
+            referredBy: referrerId,
+            referredAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        referralSuccessElem.textContent = `Referral code "${code}" applied successfully!`;
+        referralCodeInput.value = '';
+
+    } catch (error) {
+        console.error("Error applying referral code:", error);
+        referralErrorElem.textContent = "An error occurred while applying the referral code.";
+    } finally {
+        applyReferralCodeBtn.disabled = false;
+    }
+});
+
+
+// --- Withdrawal History ---
+async function loadWithdrawalHistory(userId) {
+    if (!userId) {
+        withdrawalHistoryTableBody.innerHTML = '<tr><td colspan="4">Please sign in to view history.</td></tr>';
+        return;
+    }
+
+    withdrawalHistoryTableBody.innerHTML = '<tr><td colspan="4">Loading...</td></tr>';
+
+    try {
+        // For this example, we'll simulate withdrawals. In a real app, you'd have a withdrawal request process.
+        // For now, let's just show some dummy data or transaction history that could represent withdrawals.
+        // A proper withdrawal system would involve a separate 'withdrawals' collection.
+
+        // Let's display the transaction history for now.
+        const transactionsSnapshot = await db.collection('transactions')
+            .where('userId', '==', userId)
+            .orderBy('timestamp', 'desc')
+            .limit(10) // Show last 10 transactions
+            .get();
+
+        if (transactionsSnapshot.empty) {
+            withdrawalHistoryTableBody.innerHTML = '<tr><td colspan="4">No transaction history found.</td></tr>';
+            return;
+        }
+
+        let historyHtml = '';
+        transactionsSnapshot.forEach(doc => {
+            const data = doc.data();
+            const date = data.timestamp ? new Date(data.timestamp.toDate()).toLocaleString() : 'N/A';
+            const status = data.type.includes('rewarded') ? 'Completed' : 'Pending/N/A'; // Simplified status
+            const transactionId = doc.id; // Firestore document ID as transaction ID
+
+            historyHtml += `
+                <tr>
+                    <td>${formatCurrency(data.amount)}</td>
+                    <td>${date}</td>
+                    <td>${status} (${data.type})</td>
+                    <td>${transactionId}</td>
+                </tr>
+            `;
+        });
+        withdrawalHistoryTableBody.innerHTML = historyHtml;
+
+    } catch (error) {
+        console.error("Error loading withdrawal history:", error);
+        withdrawalHistoryTableBody.innerHTML = '<tr><td colspan="4">Error loading history.</td></tr>';
+    }
 }
 
-window.adminApprove = async function(withdrawId) {
-  if (!confirm('Confirm approve and mark Paid?')) return;
-  const wRef = doc(db, 'withdrawals', withdrawId);
-  // mark as Paid and set processedAt
-  await updateDoc(wRef, { status: 'Paid', processedAt: serverTimestamp(), processedBy: authUid }).catch(e => tg.showAlert('Err:' + e));
-  tg.showAlert('Marked as Paid. User will see update automatically.');
-};
+// Initial update of cooldown messages
+updateCooldownMessages();
 
-window.adminReject = async function(withdrawId) {
-  if (!confirm('Reject request and refund?')) return;
-  const wRef = doc(db, 'withdrawals', withdrawId);
-  const wSnap = await getDoc(wRef);
-  if (!wSnap.exists()) return;
-  const w = wSnap.data();
-  const amount = w.amount || 0;
-  const userRefFor = doc(db, 'users', w.authUid);
-  // perform refund + set status in transaction
-  await runTransaction(db, async (tx) => {
-    const uSnap = await tx.get(userRefFor);
-    if (!uSnap.exists()) throw 'User missing';
-    const curBal = uSnap.data().balance || 0;
-    tx.update(userRefFor, { balance: curBal + amount });
-    tx.update(wRef, { status: 'Rejected', processedAt: serverTimestamp(), processedBy: authUid });
-  }).catch(e => tg.showAlert('Refund failed: ' + e));
-  tg.showAlert('Rejected and refunded.');
-};
-
-/* === NAVIGATION === */
-window.showPage = function(pageId, btn) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.getElementById(pageId).classList.add('active');
-  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('nav-active'));
-  if (btn) btn.classList.add('nav-active');
-};
-
-/* === OPTIONAL: auto in-app interstitial on each page show (we already show on load when cooldown passes) === */
-/* Additional cooldown handling for high/random buttons UI (client-side) */
-setInterval(() => {
-  const now = Date.now();
-  const highRemaining = (userData.lastHighReward || 0) + HIGH_COOLDOWN_MS - now;
-  const randRemaining = (userData.lastRandomReward || 0) + RANDOM_COOLDOWN_MS - now;
-  document.getElementById('cooldown-high').innerText = highRemaining > 0 ? `Cooldown: ${Math.ceil(highRemaining/1000)}s` : 'Ready';
-  document.getElementById('cooldown-random').innerText = randRemaining > 0 ? `Cooldown: ${Math.ceil(randRemaining/1000)}s` : 'Ready';
-}, 1000);
