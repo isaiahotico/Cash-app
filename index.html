@@ -3,114 +3,97 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎖🤑PAPERHOUSE INC ADS🤑🎖</title>
-    <link rel="stylesheet" href="style.css">
-    <!-- Firebase SDKs for Firestore -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-analytics-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script> 
-
-    <!-- Monetag SDKs -->
-    <!-- Original Monetag 1 -->
+    <title>PAPERHOUSE INC ADS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Monetag SDK -->
     <script src='//libtl.com/sdk.js' data-zone='10276123' data-sdk='show_10276123'></script>
-    <!-- Monetag 2 -->
-    <script src='//libtl.com/sdk.js' data-zone='10337795' data-sdk='show_10337795'></script>
-    <!-- Monetag 3 -->
-    <script src='//libtl.com/sdk.js' data-zone='10337853' data-sdk='show_10337853'></script>
-
+    <style>
+        .sky-gradient { background: linear-gradient(135deg, #0ea5e9, #38bdf8); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+    </style>
 </head>
-<body>
-    <div class="container">
-        <header class="sky-blue-bg">
-            <h1>🎖🤑PAPERHOUSE INC ADS🤑🎖</h1>
-            <div class="balance-info">
-                <p>Your Balance: <span id="user-balance">0.00</span> PHP</p>
-                <p>Telegram: <span id="telegram-username-display">Not Set</span></p>
-                <p>Referral Code: <span id="user-referral-code">Loading...</span></p>
+<body class="bg-sky-50 font-sans min-h-screen pb-20">
+
+    <!-- Header -->
+    <header class="sky-gradient text-white p-4 shadow-lg text-center rounded-b-3xl">
+        <h1 class="text-xl font-bold italic">🎖🤑PAPERHOUSE INC ADS🤑🎖</h1>
+        <p id="userBalance" class="text-2xl font-black mt-2">₱0.00</p>
+    </header>
+
+    <!-- Main Content Containers -->
+    <main class="p-4">
+        <!-- Home / Earn Section -->
+        <section id="earn" class="tab-content active space-y-4">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-sky-100 text-center">
+                <h2 class="text-sky-600 font-bold mb-2">EARN REWARDS</h2>
+                <p class="text-gray-500 text-sm mb-4">Watch an ad to get ₱0.01</p>
+                <button onclick="watchAd()" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-4 rounded-xl transition transform active:scale-95 shadow-md">
+                    📺 WATCH AD & CLAIM
+                </button>
             </div>
-            <nav>
-                <button class="nav-button active" data-target="ads-section">Earn</button>
-                <button class="nav-button" data-target="profile-section">Profile</button>
-                <button class="nav-button" data-target="referral-section">Referral</button>
-                <button class="nav-button" data-target="withdraw-section">Withdraw</button>
-                <button class="nav-button" data-target="leaderboard-section">Leaderboard</button>
-                <button class="nav-button" data-target="chat-section">Chat</button>
-                <button class="nav-button" data-target="admin-section" id="admin-nav-button" style="display: none;">Admin</button>
-            </nav>
-        </header>
 
-        <main>
-            <section id="ads-section" class="content-section active">
-                <h2>Watch Ads & Earn!</h2>
-                <p>Click the button below to watch an ad and earn 0.0065 PHP.</p>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-sky-100">
+                <h3 class="font-bold text-gray-700 mb-2">Withdrawal (GCash)</h3>
+                <input id="gcashNumber" type="number" placeholder="GCash Number" class="w-full p-3 border rounded-lg mb-2">
+                <p class="text-xs text-gray-400 mb-2">Min. Withdraw: ₱0.02</p>
+                <button onclick="requestWithdrawal()" class="w-full bg-green-500 text-white py-2 rounded-lg font-bold">Withdraw Now</button>
+            </div>
+        </section>
 
-                <button id="watch-ad-button" class="action-button">Watch Rewarded Ad (0.0065 PHP)</button>
-                <p id="ad-status-message"></p>
-                <div id="ad-container"></div>
-            </section>
+        <!-- Leaderboard -->
+        <section id="leaderboard" class="tab-content">
+            <h2 class="text-sky-700 font-bold text-lg mb-4 text-center">🏆 TOP EARNERS</h2>
+            <div id="leaderboardList" class="space-y-2"></div>
+        </section>
 
-            <section id="profile-section" class="content-section">
-                <h2>Your Profile</h2>
-                <p>User ID: <span id="profile-user-id">Loading...</span></p>
-                <p>Current Telegram Username: <strong id="current-telegram-username">Not Set</strong></p>
-                <input type="text" id="telegram-username-input" placeholder="Enter your Telegram username (e.g., @yourusername)">
-                <button id="save-telegram-username-button" class="action-button">Save Telegram Username</button>
-                <p id="telegram-username-message"></p>
-            </section>
+        <!-- Chat Room -->
 
-            <section id="referral-section" class="content-section">
-                <h2>Refer & Earn More!</h2>
-                <p>Share your unique 6-digit referral code with friends. You earn 8% of their ad earnings!</p>
-                <p>Your Code: <strong id="my-referral-code">Loading...</strong></p>
-                <p>Total Referred Earnings: <span id="total-referred-earnings">0.00</span> PHP</p>
+        <section id="chat" class="tab-content h-[60vh] flex flex-col">
+            <div id="chatMessages" class="flex-grow overflow-y-auto bg-white p-4 rounded-xl shadow-inner mb-2 space-y-2"></div>
+            <div class="flex gap-2">
+                <input id="chatInput" type="text" placeholder="Type message..." class="flex-grow p-2 border rounded-lg">
+                <button onclick="sendMessage()" class="bg-sky-500 text-white px-4 py-2 rounded-lg">Send</button>
+            </div>
+        </section>
 
-                <h3>Enter Referral Code</h3>
-                <input type="text" id="referral-input" placeholder="Enter 6-digit referral code" maxlength="6">
-                <button id="claim-referral-bonus-button" class="action-button">Claim Referral Bonus</button>
-                <p id="referral-status-message"></p>
-            </section>
+        <!-- Referral -->
+        <section id="referral" class="tab-content">
+            <div class="bg-white p-6 rounded-2xl text-center shadow-md">
+                <h2 class="text-sky-600 font-bold mb-2">REFERRAL SYSTEM</h2>
+                <p class="text-sm text-gray-500 mb-4">Share your code to earn bonuses!</p>
+                <div id="myReferralCode" class="text-2xl font-mono font-bold text-sky-700 bg-sky-50 p-3 rounded-lg border-dashed border-2 border-sky-200 mb-4">Loading...</div>
+                <hr class="my-4">
+                <input id="inputReferral" type="text" placeholder="Paste referral code here" class="w-full p-3 border rounded-lg mb-2">
+                <button onclick="claimReferral()" class="w-full bg-sky-500 text-white py-2 rounded-lg font-bold">Claim Referral Bonus</button>
+            </div>
+        </section>
 
-            <section id="withdraw-section" class="content-section">
-                <h2>Withdraw Earnings (GCash)</h2>
-                <p>Minimum withdrawal: 0.02 PHP</p>
-                <p>Your Current Balance: <span id="withdraw-balance">0.00</span> PHP</p>
-                <input type="number" id="withdraw-amount" placeholder="Amount to withdraw" min="0.02" step="0.01">
-                <input type="text" id="gcash-number" placeholder="GCash Number (e.g., 09xxxxxxxxx)">
-                <button id="submit-withdraw-button" class="action-button">Request Withdrawal</button>
-                <p id="withdraw-status-message"></p>
-                <h3>Withdrawal History</h3>
-                <ul id="withdrawal-history-list"></ul>
-            </section>
+        <!-- Admin -->
+        <section id="admin" class="tab-content">
+            <div id="adminLoginPanel" class="bg-white p-6 rounded-2xl shadow-md">
+                <h2 class="font-bold mb-4">Admin Access</h2>
+                <input id="adminPass" type="password" placeholder="Enter Password" class="w-full p-2 border rounded mb-2">
+                <button onclick="checkAdmin()" class="w-full bg-gray-800 text-white py-2 rounded">Login</button>
+            </div>
+            <div id="adminPanel" class="hidden space-y-4">
+                <h2 class="font-bold text-red-600">Withdrawal Requests</h2>
+                <div id="adminWithdrawals" class="bg-white p-2 rounded"></div>
+            </div>
+        </section>
+    </main>
 
-            <section id="leaderboard-section" class="content-section">
-                <h2>Top Earners Leaderboard</h2>
-                <ol id="leaderboard-list"></ol>
-            </section>
+    <!-- Bottom Navigation -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-sky-100 flex justify-around p-2 shadow-2xl">
+        <button onclick="showTab('earn')" class="text-sky-600 flex flex-col items-center text-xs"><span>🏠</span>Home</button>
+        <button onclick="showTab('leaderboard')" class="text-sky-600 flex flex-col items-center text-xs"><span>🏆</span>Tops</button>
+        <button onclick="showTab('chat')" class="text-sky-600 flex flex-col items-center text-xs"><span>💬</span>Chat</button>
+        <button onclick="showTab('referral')" class="text-sky-600 flex flex-col items-center text-xs"><span>👥</span>Invite</button>
+        <button onclick="showTab('admin')" class="text-sky-600 flex flex-col items-center text-xs"><span>⚙️</span>Admin</button>
+    </nav>
 
-            <section id="chat-section" class="content-section">
-                <h2>Global Chat Room</h2>
-                <div id="chat-messages"></div>
-                <input type="text" id="chat-input" placeholder="Type your message...">
-                <button id="send-chat-button" class="action-button">Send</button>
-            </section>
-
-            <section id="admin-section" class="content-section" style="display: none;">
-                <h2>Admin Dashboard</h2>
-                <div id="admin-login" class="admin-panel">
-                    <h3>Admin Login</h3>
-                    <input type="password" id="admin-password" placeholder="Admin Password">
-                    <button id="admin-login-button" class="action-button">Login</button>
-                    <p id="admin-login-status"></p>
-                </div>
-                <div id="admin-dashboard-content" style="display: none;">
-                    <h3>Pending Withdrawal Requests</h3>
-                    <ul id="withdrawal-requests-list"></ul>
-                </div>
-            </section>
-        </main>
-    </div>
-
-    <script src="app.js"></script>
+    <!-- Firebase SDKs -->
+    <script type="module" src="app.js"></script>
 </body>
 </html>
