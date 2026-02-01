@@ -19,10 +19,6 @@
     <script id="nativeAdScript1" data-zone='10109465' src='https://groleegni.net/vignette.min.js'></script>
     <script id="nativeAdScript2" data-zone='10109465' src='https://groleegni.net/vignette.min.js'></script>
 
-    <!-- Monetag Popunder Ads -->
-    <script id="popunderAdScript1" data-zone='10530027' src='https://al5sm.com/tag.min.js'></script>
-    <script id="popunderAdScript2" data-zone='10049581' src='https://al5sm.com/tag.min.js'></script>
-
     <style>
         .sky-gradient { background: linear-gradient(135deg, #0ea5e9, #38bdf8); }
         .tab-content { display: none; }
@@ -45,12 +41,10 @@
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-sky-100 text-center">
                 <h2 class="text-sky-600 font-bold mb-2">EARN REWARDS</h2>
                 <p class="text-gray-500 text-sm mb-4">Watch an ad to get ₱0.0065 (30s cooldown)</p>
-
                 <button id="watchAdBtn" onclick="watchAd()" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-4 rounded-xl transition transform active:scale-95 shadow-md">
                     📺 WATCH AD & CLAIM
                 </button>
-                <p id="adCooldownTimer" class="text-xs text-gray-400 mt-2"></p>
-            </div>
+                <p id="adCooldownTimer" class="text-xs text-gray-400 mt-2"></p>            </div>
 
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-sky-100 text-center">
                 <h2 class="text-sky-600 font-bold mb-2">BONUS POPUP AD</h2>
@@ -59,15 +53,6 @@
                     ✨ GET BONUS AD
                 </button>
                 <p id="bonusAdCooldownTimer" class="text-xs text-gray-400 mt-2"></p>
-            </div>
-
-            <!-- Popunder Ad Button -->
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-sky-100 text-center">
-                <h2 class="text-sky-600 font-bold mb-2">OPEN POPUNDER AD</h2>
-                <p class="text-gray-500 text-sm mb-4">Click to open a new ad tab.</p>
-                <button onclick="showPopunderAd()" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 rounded-xl transition transform active:scale-95 shadow-md">
-                    🌐 OPEN POPUNDER
-                </button>
             </div>
 
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-sky-100">
@@ -94,8 +79,7 @@
             <div class="flex gap-2">
                 <input id="chatInput" type="text" placeholder="Type message..." class="flex-grow p-2 border rounded-lg">
                 <button onclick="sendMessage()" class="bg-sky-500 text-white px-4 py-2 rounded-lg">Send</button>
-            </div>
-        </section>
+            </div>        </section>
 
         <!-- Referral -->
         <section id="referral" class="tab-content">
@@ -103,8 +87,7 @@
                 <h2 class="text-sky-600 font-bold mb-2">REFERRAL SYSTEM</h2>
                 <p class="text-sm text-gray-500 mb-4">Share your code to earn bonuses!</p>
                 <div id="myReferralCode" class="text-2xl font-mono font-bold text-sky-700 bg-sky-50 p-3 rounded-lg border-dashed border-2 border-sky-200 mb-4">Loading...</div>
-
-<button onclick="copyReferralCode()" class="bg-sky-400 text-white px-3 py-1 rounded-lg text-sm mb-4">Copy Code</button>
+                <button onclick="copyReferralCode()" class="bg-sky-400 text-white px-3 py-1 rounded-lg text-sm mb-4">Copy Code</button>
                 <hr class="my-4">
                 <input id="inputReferral" type="text" placeholder="Paste referral code here" class="w-full p-3 border rounded-lg mb-2">
                 <button onclick="claimReferral()" class="w-full bg-sky-500 text-white py-2 rounded-lg font-bold">Claim Referral Bonus</button>
