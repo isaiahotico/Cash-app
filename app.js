@@ -28,6 +28,7 @@ document.getElementById('telegramUsername').innerText = telegramUsername;
 let userBalance = 0;
 let userReferralsCount = 0;
 let userClaimableBonus = 0;
+let userHasAppliedReferral = false; // New state for referral application
 
 const REWARD_PER_AD = 0.0065;
 const REWARD_PER_BONUS_AD = 0.0012;
@@ -56,9 +57,6 @@ const PSYCH_TIPS = [
     "The more you engage, the more you earn. It's that simple!",
     "Don't underestimate the power of consistent micro-earnings.",
     "Your effort today builds your balance for tomorrow.",
-    "Celebrate every small success – it fuels your motivation!",
-    "A penny saved is a penny earned, and a penny earned is a penny closer!",
-    "Make earning a habit, and watch your balance grow.",
     "The best way to predict your financial future is to create it, one ad at a time.",
     "Success is the sum of small efforts repeated day in and day out.",
     "You're building something here, one click at a time.",
@@ -119,7 +117,12 @@ function updateCooldownDisplay(key, elementId, buttonId, durationSeconds, callba
 
     if (!timerElement && !button) return; // Ensure at least one element exists
 
-    const interval = setInterval(() => {
+    // Clear any existing interval for this key to prevent multiple timers
+    if (window[`${key}Interval`]) {
+        clearInterval(window[`${key}Interval`]);
+    }
+
+    const updateTimer = () => {
         const expiry = getCooldown(key);
         const remaining = expiry - Date.now();
 
@@ -131,10 +134,14 @@ function updateCooldownDisplay(key, elementId, buttonId, durationSeconds, callba
         } else {
             if (button) button.disabled = false;
             if (timerElement) timerElement.innerText = "";
-            clearInterval(interval);
+            clearInterval(window[`${key}Interval`]);
+            delete window[`${key}Interval`]; // Clean up the interval reference
             if (callback) callback(); // Optional callback when cooldown ends
         }
-    }, 1000);
+    };
+
+    updateTimer(); // Initial call
+    window[`${key}Interval`] = setInterval(updateTimer, 1000); // Store interval ID
 }
 
 // --- Initialize User and Listeners ---
@@ -143,16 +150,13 @@ async function initUser() {
     const snapshot = await get(userRef);
     
     if (!snapshot.exists()) {
-        // Double account check: If a user with this userId already exists, don't create a new one.
-        // This is handled by Firebase security rules and the `userId` being the key.
-        // If the username is the referral code, we don't need a separate 'referralCode' field for the user.
-        // We will use the 'username' field itself as their referral code.
         await set(userRef, {
             username: telegramUsername, // Use Telegram username as their referral code
             balance: 0,
             referralsCount: 0, // Number of users who applied this user's code
             claimableBonus: 0, // Bonus earned from referrals, to be claimed
             usedReferral: false, // True if this user has applied someone else's referral code
+            referrerUsername: null, // Stores the username of the referrer
             createdAt: serverTimestamp()
         });
     }
@@ -162,16 +166,31 @@ async function initUser() {
         userBalance = data.balance || 0;
         userReferralsCount = data.referralsCount || 0;
         userClaimableBonus = data.claimableBonus || 0;
+        userHasAppliedReferral = data.usedReferral || false;
 
         document.getElementById('userBalance').innerText = `₱${userBalance.toFixed(4)}`;
-        document.getElementById('telegramUsername').innerText = telegramUsername; // Ensure it's always up-to-date
-        document.getElementById('myReferralCode').innerText = telegramUsername; // Referral code is now Telegram username
+        document.getElementById('telegramUsername').innerText = telegramUsername;
+        document.getElementById('myReferralCode').innerText = telegramUsername;
         document.getElementById('totalReferrals').innerText = userReferralsCount;
         document.getElementById('claimableBonus').innerText = userClaimableBonus.toFixed(4);
         
         // Enable/disable claim button
         const claimBtn = document.getElementById('claimReferralBonusBtn');
         if (claimBtn) claimBtn.disabled = userClaimableBonus <= 0;
+
+        // Disable apply referral button if already used
+        const applyReferralBtn = document.getElementById('applyReferralBtn');
+        const inputReferral = document.getElementById('inputReferral');
+        if (userHasAppliedReferral) {
+            if (applyReferralBtn) applyReferralBtn.disabled = true;
+            if (inputReferral) inputReferral.placeholder = `Applied by: ${data.referrerUsername || 'N/A'}`;
+            if (inputReferral) inputReferral.value = ''; // Clear input if already applied
+            if (inputReferral) inputReferral.disabled = true;
+        } else {
+            if (applyReferralBtn) applyReferralBtn.disabled = false;
+            if (inputReferral) inputReferral.disabled = false;
+            if (inputReferral) inputReferral.placeholder = "Enter referrer's Telegram Username";
+        }
     });
 
     // Start cooldown timers
@@ -183,7 +202,22 @@ async function initUser() {
 
     // Show in-app interstitial on app open
     showInAppInterstitialOnOpen();
+
+    // Show invite popup on login
+    showInvitePopup();
 }
+
+// --- Invite Popup Logic ---
+function showInvitePopup() {
+    const popup = document.getElementById('invitePopup');
+    if (popup) {
+        popup.classList.add('show');
+        setTimeout(() => {
+            popup.classList.remove('show');
+        }, 2000); // Hide after 2 seconds
+    }
+}
+
 
 // --- Monetag Ad Logic ---
 function showRandomRewardedAd(type = 'interstitial') {
@@ -284,7 +318,8 @@ window.showTab = function(tabId) {
     document.getElementById(tabId).classList.add('active');
     if(tabId === 'leaderboard') loadLeaderboard();
     if(tabId === 'chat') loadChat();
-    if(tabId === 'earn') loadWithdrawalHistory(); // Load history when on earn tab
+    // Ensure withdrawal history is loaded/updated whenever the 'earn' tab is active
+    if(tabId === 'earn') loadWithdrawalHistory(); 
 };
 
 // --- Leaderboard Logic ---
@@ -359,6 +394,7 @@ window.requestWithdrawal = async function() {
     alert("Withdrawal Requested! Please wait for admin approval.");
 };
 
+// Listen for user's withdrawal history in real-time
 function loadWithdrawalHistory() {
     const historyRef = query(ref(db, 'withdrawals'), orderByChild('userId'), equalTo(userId));
     onValue(historyRef, (snap) => {
@@ -382,7 +418,7 @@ function loadWithdrawalHistory() {
 
             container.innerHTML += `<div class="p-2 bg-gray-50 rounded shadow-sm flex justify-between items-center">
                 <div>
-                    <p class="font-semibold">₱${wd.amount.toFixed(2)} to ${wd.gcash}</p>
+                    <p class="font-semibold">₱${wd.amount.toFixed(4)} to ${wd.gcash}</p>
                     <p class="text-xs text-gray-500">${date}</p>
                 </div>
                 <span class="text-sm font-bold ${statusColor}">${wd.status.toUpperCase()}</span>
@@ -404,8 +440,8 @@ window.checkAdmin = function() {
     }
 };
 
+// Listen for admin withdrawal requests in real-time
 function loadAdminData() {
-    // Listen for all withdrawals, ordered by status (pending first)
     onValue(query(ref(db, 'withdrawals'), orderByChild('status')), (snap) => {
         const container = document.getElementById('adminWithdrawals');
         container.innerHTML = "";
@@ -421,7 +457,10 @@ function loadAdminData() {
         allWithdrawals.sort((a, b) => {
             if (a.status === 'pending' && b.status !== 'pending') return -1;
             if (a.status !== 'pending' && b.status === 'pending') return 1;
-            return b.timestamp - a.timestamp; // Newest first for non-pending
+            // Handle cases where timestamp might be null (e.g., new entries before serverTimestamp resolves)
+            const timeA = a.timestamp || 0;
+            const timeB = b.timestamp || 0;
+            return timeB - timeA; // Newest first for non-pending
         });
 
         allWithdrawals.forEach(wd => {
@@ -473,8 +512,7 @@ window.applyReferral = async function() {
     const referrerUsername = document.getElementById('inputReferral').value.trim();
     if (!referrerUsername) return alert("Please enter referrer's Telegram username.");
 
-    const userSnap = await get(ref(db, 'users/' + userId));
-    if(userSnap.val().usedReferral) return alert("You have already applied a referrer's code.");
+    if(userHasAppliedReferral) return alert("You have already applied a referrer's code.");
 
     // Prevent self-referral
     if (telegramUsername.toLowerCase() === referrerUsername.toLowerCase()) return alert("You cannot refer yourself.");
@@ -501,11 +539,15 @@ window.applyReferral = async function() {
             referralsCount: (referrerData.referralsCount || 0) + 1
         });
         
-        // Mark current user as having used a referral
-        await update(ref(db, 'users/' + userId), { usedReferral: true });
+        // Mark current user as having used a referral and save referrer's username
+        await update(ref(db, 'users/' + userId), { 
+            usedReferral: true,
+            referrerUsername: referrerUsername // Store the referrer's username
+        });
 
         alert(`Referrer '${referrerUsername}' has received a bonus!`);
         document.getElementById('inputReferral').value = ''; // Clear input
+        // The onValue listener will automatically disable the input and button
     } else {
         alert("Invalid or non-existent referrer Telegram username.");
     }
@@ -518,12 +560,14 @@ window.claimReferralBonus = async function() {
     }
 
     if (confirm(`Claim ₱${userClaimableBonus.toFixed(4)} referral bonus?`)) {
-        const newBalance = userBalance + userClaimableBonus;
-        await update(ref(db, 'users/' + userId), { 
-            balance: newBalance,
-            claimableBonus: 0 // Reset claimable bonus after claiming
-        });
+        // Use a transaction or careful update to ensure atomicity
+        const updates = {};
+        updates['/users/' + userId + '/balance'] = userBalance + userClaimableBonus;
+        updates['/users/' + userId + '/claimableBonus'] = 0; // Reset claimable bonus
+
+        await update(ref(db), updates);
         alert(`₱${userClaimableBonus.toFixed(4)} claimed successfully and added to your balance!`);
+        // The onValue listener will update the UI
     }
 };
 
