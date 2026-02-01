@@ -1,123 +1,132 @@
-<?php
-header("Content-Type: application/json");
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>🎖🤑PAPERHOUSE INC ADS🤑🎖</title>
 
-// ======================
-// 🔹 CONFIG
-// ======================
-$config = [
-    "db"=>["host"=>"localhost","user"=>"root","pass"=>"","name"=>"autofaucet"],
-    "faucetpay"=>["api_key"=>"YOUR_FAUCETPAY_API_KEY"],
-    "min_withdraw"=>["USDT"=>1,"TRX"=>5,"LTC"=>0.001],
-    "auto_limit"=>["USDT"=>2,"TRX"=>20,"LTC"=>0.01],
-    "claim_reward"=>["USDT"=>0.01,"TRX"=>0.1,"LTC"=>0.00001],
-    "claim_cooldown"=>300,
-    "admin_password"=>"Propetas6",
-    "firebase_url"=>"https://your-firebase.firebaseio.com/"
-];
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"/>
 
-// ======================
-// 🔹 DATABASE
-// ======================
-$db = new mysqli($config["db"]["host"], $config["db"]["user"], $config["db"]["pass"], $config["db"]["name"]);
+  <!-- Monetag SDKs (3 zones) -->
+  <script src="//libtl.com/sdk.js" data-zone="10276123" data-sdk="show_10276123"></script>
+  <script src="//libtl.com/sdk.js" data-zone="10337795" data-sdk="show_10337795"></script>
+  <script src="//libtl.com/sdk.js" data-zone="10337853" data-sdk="show_10337853"></script>
 
-// ======================
-// 🔹 FUNCTIONS
-// ======================
-function updateFirebase($path,$data){ global $config;
-    $url = $config["firebase_url"].$path.".json";
-    $options = ["http"=>["method"=>"PATCH","header"=>"Content-type: application/json","content"=>json_encode($data)]];
-    file_get_contents($url,false,stream_context_create($options));
-}
+  <style>
+    :root { --sky-blue: #00a8ff; }
+    body { background: #f0f2f5; font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
+    .glass { background: rgba(255,255,255,0.85); backdrop-filter: blur(8px); border-radius: 16px; box-shadow: 0 6px 24px rgba(10,10,10,0.06); }
+    .nav-active { color: var(--sky-blue); transform: translateY(-4px); }
+    .sliding-nav { position:fixed; bottom:0; left:0; right:0; display:flex; justify-content:space-around; padding:12px; background:#fff; border-radius:14px 14px 0 0; box-shadow:0 -6px 24px rgba(0,0,0,0.06); }
+    .page { display:none; padding-bottom:96px; }
+    .page.active { display:block; }
+    .btn-grad { background:linear-gradient(90deg,#00a8ff,#0097e6); color:#fff; }
+    .btn-gold { background:linear-gradient(90deg,#FFD700,#FFA500); color:#fff; } /* Added for claim bonus */
+  </style>
+</head>
+<body>
+  <div class="p-4 btn-grad text-center text-white">
+    <h1 class="text-lg font-bold">🎖🤑PAPERHOUSE INC ADS🤑🎖</h1>
+    <div id="user-display" class="text-sm opacity-90 mt-1">Loading...</div>
+  </div>
 
-function sendFaucetPay($to,$amount,$currency,$ip){ global $config;
-    $ch=curl_init("https://faucetpay.io/api/v1/send");
-    curl_setopt($ch,CURLOPT_RETURNTRANSFER,true);
-    curl_setopt($ch,CURLOPT_POST,true);
-    curl_setopt($ch,CURLOPT_POSTFIELDS,http_build_query([
-        "api_key"=>$config["faucetpay"]["api_key"],
-        "to"=>$to,"amount"=>$amount,"currency"=>$currency,"ip_address"=>$ip
-    ]));
-    $resp=curl_exec($ch); curl_close($ch);
-    return json_decode($resp,true);
-}
+  <main class="container mx-auto p-4">
+    <section id="home" class="page active">
+      <div class="glass p-5 mb-4">
+        <div class="text-xs text-gray-500">Current Balance</div>
+        <div class="text-3xl font-extrabold text-sky-600">₱ <span id="user-balance">0.00</span></div>
+        <div class="mt-3 grid grid-cols-2 gap-3">
+          <div class="p-3 glass text-center">
+            <div class="text-xs text-gray-400">Total Ads</div>
+            <div id="total-ads" class="font-bold">0</div>
+          </div>
+          <div class="p-3 glass text-center">
+            <div class="text-xs text-gray-400">Min Payout</div>
+            <div class="font-bold">₱1.00</div>          </div>
+        </div>
+      </div>
 
-function getUser($userId){ global $db;
-    $res=$db->query("SELECT * FROM users WHERE id=$userId");
-    return $res->fetch_assoc();
-}
+      <div class="mb-3">
+        <button id="btn-high" onclick="watchHighRewardAd()" class="w-full btn-grad p-4 rounded-lg font-bold mb-2">WATCH INTERSTITIAL (+₱0.0065)</button>
+        <div id="cooldown-high" class="text-xs text-orange-500 mb-4">Ready</div>
 
-function transaction($userId,$callback){ global $db;
-    $user=getUser($userId);
-    $newData=$callback($user);
-    if($newData){
-        $set=[];
-        foreach($newData as $k=>$v){ $set[]="$k='".$db->real_escape_string($v)."'"; }
-        $db->query("UPDATE users SET ".implode(",",$set)." WHERE id=$userId");
-        return $newData;
-    }
-    return null;
-}
+        <button id="btn-random" onclick="watchRandomRewardAd()" class="w-full bg-yellow-500 text-white p-4 rounded-lg font-bold mb-2">RANDOM POPUP (+₱0.0012)</button>
+        <div id="cooldown-random" class="text-xs text-orange-500">Ready</div>
+      </div>
 
-// ======================
-// 🔹 API ENDPOINT
-// ======================
-$action=$_GET['action']??null;
-$userId=intval($_GET['userId']??0);
+      <!-- Referral Card -->
+      <div class="glass p-5 mb-4">
+        <h4 class="font-bold mb-3 text-lg">🤝 INVITE FRIENDS</h4>
+        <div class="flex gap-2 mb-3">
+          <input type="text" id="ref-binder" placeholder="Referrer Username" class="flex-1 border p-2 rounded-lg"/>
+          <button class="btn-grad px-4 py-2 rounded-lg text-sm" onclick="bindReferrer()">BIND</button>
+        </div>
+        <div class="grid grid-cols-2 gap-3 mb-3">
+          <div class="p-3 glass text-center">
+            <small class="text-gray-500">Total Invites</small><br><b id="txt-ref-c">0</b>
+          </div>
+          <div class="p-3 glass text-center">
+            <small class="text-gray-500">Bonus Pool</small><br><b id="txt-ref-b">₱0.00</b>
+          </div>
+        </div>
+        <button class="w-full btn-gold p-3 rounded-lg font-bold" onclick="claimBonus()">CLAIM REWARDS</button>
+        <p class="text-xs text-gray-500 mt-2">Your referral code: <span id="my-ref-code" class="font-bold text-sky-600">Loading...</span></p>
+      </div>
+      <!-- End Referral Card -->
 
-switch($action){
+    </section>
 
-// ---- CLAIM FAUCET ----
-case "claim":
-    $currency=$_GET['currency']??'TRX';
-    $reward=$config["claim_reward"][$currency];
-    $cooldown=$config["claim_cooldown"];
+    <section id="leaderboard" class="page">
+      <h2 class="text-xl font-bold mb-3">Top Earners</h2>
+      <div id="leaderboard-list" class="space-y-2"></div>
+    </section>
 
-    transaction($userId,function($user) use($reward,$cooldown){
-        $now=time();
-        if(!$user['lastClaim'] || $now-strtotime($user['lastClaim'])>$cooldown){
-            return ["balance"=>($user['balance']??0)+$reward,"lastClaim"=>date("Y-m-d H:i:s")];
-        } else { echo json_encode(["error"=>"Cooldown active"]); exit; }
-    });
+    <section id="chat" class="page">
+      <div class="glass p-3 flex flex-col h-[56vh]">
+        <div id="chat-box" class="flex-1 overflow-auto p-2 space-y-2"></div>
+        <div class="mt-2 flex gap-2">
+          <input id="chat-input" class="flex-1 border rounded-lg p-2" placeholder="Message..."/>          <button onclick="sendMessage()" class="btn-grad text-white px-3 rounded-lg">Send</button>
+        </div>
+      </div>
+    </section>
 
-    updateFirebase("users/$userId",["balance"=>getUser($userId)['balance']]);
-    echo json_encode(["success"=>"Claimed $reward $currency"]);
-    break;
+    <section id="wallet" class="page">
+      <div class="glass p-4 mb-4">
+        <h3 class="font-bold mb-2">Withdraw to GCash</h3>
+        <input id="gcash-num" placeholder="GCash number (09...)" class="w-full border p-3 rounded-lg mb-2"/>
+        <input id="wd-amount" type="number" placeholder="Amount (Min ₱1.00)" class="w-full border p-3 rounded-lg mb-3"/>
+        <button onclick="requestWithdrawal()" class="w-full bg-green-600 text-white p-3 rounded-lg font-bold">Request Withdraw</button>
+      </div>
 
-// ---- REQUEST WITHDRAWAL ----
-case "request_withdraw":
-    $currency=$_GET['currency']??'TRX';
-    $user=getUser($userId);
-    $amount=floatval($user['balance']);
-    if($amount<$config['min_withdraw'][$currency]){ echo json_encode(["error"=>"Minimum withdrawal not reached"]); exit; }
-    $status=($amount<=$config['auto_limit'][$currency])?'pending_auto':'pending_manual';
-    $db->query("INSERT INTO withdraw_queue (user_id,currency,amount,status) VALUES ($userId,'$currency',$amount,'$status')");
-    echo json_encode(["success"=>"Withdrawal requested"]);
-    break;
+      <div class="glass p-4">
+        <h3 class="font-bold mb-2">Withdrawal History</h3>
+        <div id="withdrawal-history" class="space-y-2 text-sm"></div>
+      </div>
+    </section>
 
-// ---- ADMIN ACTION ----
-case "admin_action":
-    $password=$_GET['password']??'';
-    $wid=intval($_GET['wid']??0);
-    $do=$_GET['do']??'approve';
-    if($password!=$config['admin_password']){ echo json_encode(["error"=>"Invalid password"]); exit; }
-    $wRes=$db->query("SELECT * FROM withdraw_queue WHERE id=$wid"); $withdraw=$wRes->fetch_assoc();
-    if(!$withdraw){ echo json_encode(["error"=>"Withdraw not found"]); exit; }
-    $user=getUser($withdraw['user_id']);
+    <section id="admin" class="page">
+      <div id="admin-login" class="glass p-4">
+        <input id="admin-pass" type="password" placeholder="Admin Password" class="w-full border p-3 rounded-lg mb-3"/>
+        <button onclick="checkAdmin()" class="w-full btn-grad p-3 rounded-lg text-white">Open Admin</button>
+      </div>
 
-    if($do==='approve'){
-        $fp=sendFaucetPay($user['faucetpay_email'],$withdraw['amount'],$withdraw['currency'],$user['ip_address']);
-        if($fp['status']==200){
-            $db->query("UPDATE withdraw_queue SET status='paid', txid='{$fp['transaction_id']}' WHERE id=$wid");
-            $db->query("UPDATE users SET balance=0 WHERE id={$withdraw['user_id']}");
-            updateFirebase("users/{$withdraw['user_id']}",["balance"=>0]);
-            echo json_encode(["success"=>"Withdrawal approved"]);
-        } else { echo json_encode(["error"=>"FaucetPay error: ".$fp['message']]); }
-    } else if($do==='reject'){
-        $db->query("UPDATE withdraw_queue SET status='rejected' WHERE id=$wid");
-        echo json_encode(["success"=>"Withdrawal rejected"]);
-    }
-    break;
+      <div id="admin-content" class="hidden glass p-4 mt-3">
+        <h3 class="font-bold mb-3">Pending Withdrawals</h3>
+        <div id="withdrawal-list" class="space-y-2"></div>
+      </div>
+    </section>
+  </main>
 
-default:
-    echo json_encode(["error"=>"Invalid action"]);
-}
+  <nav class="sliding-nav">
+    <button class="nav-item nav-active" onclick="showPage('home', this)"><i class="fas fa-home text-xl"></i></button>
+    <button class="nav-item" onclick="showPage('leaderboard', this)"><i class="fas fa-trophy text-xl"></i></button>
+    <button class="nav-item" onclick="showPage('chat', this)"><i class="fas fa-comments text-xl"></i></button>
+    <button class="nav-item" onclick="showPage('wallet', this)"><i class="fas fa-wallet text-xl"></i></button>
+    <button class="nav-item" onclick="showPage('admin', this)"><i class="fas fa-user-shield text-xl"></i></button>
+  </nav>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
