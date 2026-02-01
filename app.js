@@ -1,575 +1,344 @@
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getDatabase, ref, set, get, update, onValue, push, serverTimestamp, query, orderByChild, limitToLast, equalTo } 
-    from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+// app.js
+// Prototype Retro Pixel Racer + Firestore integration (demo).
+// IMPORTANT: Replace firebaseConfig with your project's config.
+// For production: implement secure admin flow and server-side payouts.
 
-const firebaseConfig = {
-    apiKey: "AIzaSyBwpa8mA83JAv2A2Dj0rh5VHwodyv5N3dg",
-    authDomain: "freegcash-ads.firebaseapp.com",
-    databaseURL: "https://freegcash-ads-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "freegcash-ads",
-    storageBucket: "freegcash-ads.firebasestorage.app",
-    messagingSenderId: "608086825364",
-    appId: "1:608086825364:web:3a8e628d231b52c6171781",
-    measurementId: "G-Z64B87ELGP"
-};
+(async function () {
+  // ====== CONFIG - Replace with your Firebase config ======
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    // ... other fields
+  };
+  // =======================================================
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-const tg = window.Telegram.WebApp;
-tg.expand();
+  // Sign in anonymously for prototype
+  let firebaseUser = null;
+  await auth.signInAnonymously().catch(e => console.error('Auth error:', e));
+  firebaseUser = auth.currentUser;
 
-// Telegram User Data
-const userId = tg.initDataUnsafe?.user?.id || "test_user_123";
-const telegramUsername = tg.initDataUnsafe?.user?.username || tg.initDataUnsafe?.user?.first_name || "Guest";
-document.getElementById('telegramUsername').innerText = telegramUsername;
-
-let userBalance = 0;
-let userReferralsCount = 0;
-let userClaimableBonus = 0;
-let userHasAppliedReferral = false; // New state for referral application
-
-const REWARD_PER_AD = 0.0065;
-const REWARD_PER_BONUS_AD = 0.0012;
-const REWARD_PER_REFERRAL = 0.01; // Bonus for referrer when new user applies their code
-
-const AD_COOLDOWN_SECONDS = 30; // 30 seconds
-const BONUS_AD_COOLDOWN_MINUTES = 10; // 10 minutes
-const IN_APP_INTERSTITIAL_COOLDOWN_MINUTES = 3; // 3 minutes
-const DONATION_AD_COOLDOWN_MINUTES = 5; // 5 minutes for native ad clicks
-
-// Monetag Rewarded Ad Zones (used for all rewarded/interstitial/popup ads)
-const MONETAG_REWARDED_ADS = [
-    show_10276123, // Original
-    show_10337795, // New #2
-    show_10337853  // New #3
-];
-
-// Psychological Tips
-const PSYCH_TIPS = [
-    "Small gains add up! Consistency is key to reaching your goals.",
-    "Every ad watched brings you closer to your next withdrawal. Keep going!",
-    "Think of each click as a step towards financial freedom.",
-    "Patience pays off. Your rewards are accumulating!",
-    "Even tiny amounts can grow into something significant over time.",
-    "Stay focused on your goal. Every reward counts!",
-    "The more you engage, the more you earn. It's that simple!",
-    "Don't underestimate the power of consistent micro-earnings.",
-    "Your effort today builds your balance for tomorrow.",
-    "The best way to predict your financial future is to create it, one ad at a time.",
-    "Success is the sum of small efforts repeated day in and day out.",
-    "You're building something here, one click at a time.",
-    "Every reward is a step, not just a destination.",
-    "Keep your eyes on the prize, even the smallest ones.",
-    "Your financial journey starts with a single click.",
-    "The secret to getting ahead is getting started, and keeping at it.",
-    "Believe in the power of small, consistent actions.",
-    "You're not just watching ads, you're investing your time wisely.",
-    "The path to wealth is paved with many small, deliberate steps.",
-    "Don't wait for big opportunities. Create them with small actions.",
-    "Your future self will thank you for your consistency today.",
-    "Every earned cent is a testament to your dedication.",
-    "It's not about how fast you go, but that you keep moving.",
-    "Turn your spare moments into earning moments.",
-    "The habit of earning is more valuable than any single large sum.",
-    "Small acts, when multiplied by millions of people, can transform the world.",
-    "Your financial growth is a marathon, not a sprint.",
-    "The most successful people are those who are consistent.",
-    "Don't despise humble beginnings; they often lead to great things.",
-    "Each reward is a brick in your financial foundation.",
-    "You're cultivating a mindset of abundance, one ad at a time.",
-    "The journey of a thousand miles begins with a single step... or click!",
-    "Your persistence is your superpower in earning.",
-    "Stay positive and keep clicking. Good things are coming!",
-    "The best investment you can make is in yourself, and your earning habits.",
-    "You're building momentum with every successful ad view.",
-    "Embrace the process; the rewards will follow.",
-    "Think of your balance as a garden you're tending.",
-    "Every small win reinforces your ability to achieve more.",
-    "Your dedication is directly proportional to your earnings.",
-    "One ad today, more balance tomorrow.",
-    "Your actions today determine your financial reality tomorrow.",
-    "Stay motivated! Your next reward is just a click away.",
-    "You're on the right track. Keep up the great work!"
-];
-
-function showPsychTip() {
-    const tip = PSYCH_TIPS[Math.floor(Math.random() * PSYCH_TIPS.length)];
-    alert("💡 Earning Tip:\n" + tip);
-}
-
-
-// --- Cooldown Logic ---
-function setCooldown(key, durationSeconds) {
-    const expiry = Date.now() + (durationSeconds * 1000);
-    localStorage.setItem(key, expiry);
-    return expiry;
-}
-
-function getCooldown(key) {
-    return parseInt(localStorage.getItem(key) || "0");
-}
-
-function updateCooldownDisplay(key, elementId, buttonId, durationSeconds, callback) {
-    const timerElement = document.getElementById(elementId);
-    const button = document.getElementById(buttonId);
-
-    if (!timerElement && !button) return; // Ensure at least one element exists
-
-    // Clear any existing interval for this key to prevent multiple timers
-    if (window[`${key}Interval`]) {
-        clearInterval(window[`${key}Interval`]);
+  // Telegram WebApp detection (works only inside Telegram)
+  let tgUser = {
+    id: null,
+    username: null,
+    first_name: null,
+    last_name: null
+  };
+  try {
+    if (window.Telegram && window.Telegram.WebApp) {
+      const t = window.Telegram.WebApp.initDataUnsafe?.user || window.Telegram.WebApp.initData?.user;
+      if (t) {
+        tgUser.id = t.id;
+        tgUser.username = t.username || null;
+        tgUser.first_name = t.first_name || null;
+        tgUser.last_name = t.last_name || null;
+      }
     }
+  } catch (e) {
+    console.warn('Telegram API not available', e);
+  }
 
-    const updateTimer = () => {
-        const expiry = getCooldown(key);
-        const remaining = expiry - Date.now();
+  // If no Telegram user, allow manual username input (prompt once)
+  if (!tgUser.username && !tgUser.first_name) {
+    const manual = prompt("Enter display name (for demo):") || `anon${Math.floor(Math.random()*1000)}`;
+    tgUser.username = manual;
+  } else if (!tgUser.username) {
+    tgUser.username = `${tgUser.first_name || ''} ${tgUser.last_name || ''}`.trim();
+  }
 
-        if (remaining > 0) {
-            if (button) button.disabled = true;
-            const minutes = Math.floor((remaining / 1000 / 60) % 60);
-            const seconds = Math.floor((remaining / 1000) % 60);
-            if (timerElement) timerElement.innerText = `Cooldown: ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-        } else {
-            if (button) button.disabled = false;
-            if (timerElement) timerElement.innerText = "";
-            clearInterval(window[`${key}Interval`]);
-            delete window[`${key}Interval`]; // Clean up the interval reference
-            if (callback) callback(); // Optional callback when cooldown ends
+  const displayName = tgUser.username || `anon_${firebaseUser.uid.slice(0,6)}`;
+  document.getElementById('username').innerText = displayName;
+
+  // Create/ensure user doc in Firestore
+  const userKey = tgUser.id ? `tg_${tgUser.id}` : `anon_${firebaseUser.uid}`;
+  const userDocRef = db.collection('users').doc(userKey);
+  await userDocRef.set({
+    displayName,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+    firebaseUid: firebaseUser.uid,
+    tgId: tgUser.id || null
+  }, { merge: true });
+
+  // ====== Game setup ======
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const lanes = 6;
+  const laneW = canvas.width / lanes;
+  const car = {
+    lane: Math.floor(lanes/2),
+    w: laneW * 0.6,
+    h: 32,
+    y: canvas.height - 120
+  };
+  const obstacles = [];
+  let running = false;
+  let speed = 140; // pixels per second (base)
+  let spawnTimer = 0;
+  let spawnInterval = 700; // ms
+  let lastTs = 0;
+  let dodged = 0;
+  let score = 0;
+
+  function resetGame() {
+    obstacles.length = 0;
+    running = false;
+    speed = 140;
+    spawnTimer = 0;
+    spawnInterval = 700;
+    lastTs = 0;
+    dodged = 0;
+    score = 0;
+    updateUI();
+    draw();
+  }
+
+  function startGame() {
+    obstacles.length = 0;
+    running = true;
+    speed = 140;
+    spawnTimer = 0;
+    spawnInterval = 700;
+    lastTs = performance.now();
+    requestAnimationFrame(loop);
+  }
+
+  function gameOver() {
+    running = false;
+    // Save score to Firestore
+    userDocRef.set({
+      bestScore: firebase.firestore.FieldValue.increment(score),
+      lastScore: score,
+      lastPlayed: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+    alert('Game Over! Score: ' + score + ' Dodged: ' + dodged);
+  }
+
+  function loop(ts) {
+    if (!running) return;
+    const dt = Math.max(1, ts - lastTs);
+    lastTs = ts;
+    // speed increases gradually
+    speed += (dt/10000) * 20;
+    spawnTimer += dt;
+    if (spawnTimer > spawnInterval) {
+      spawnTimer = 0;
+      // spawn 1-2 obstacles, ensure at least one safe lane
+      const count = Math.random() < 0.12 ? 2 : 1;
+      const lanesArr = [...Array(lanes).keys()];
+      shuffle(lanesArr);
+      for (let i=0;i<count;i++){
+        const l = lanesArr[i];
+        obstacles.push({ lane: l, y: -40, w: laneW*0.7, h: 28, passed: false });
+      }
+    }
+    // move obstacles
+    for (let ob of obstacles) {
+      ob.y += speed * (dt/1000);
+      // check collision
+      if (!ob.passed && ob.y + ob.h >= car.y && ob.y <= car.y + car.h) {
+        if (ob.lane === car.lane) {
+          // collision
+          running = false;
+          draw();
+          gameOver();
+          return;
         }
+      }
+      if (!ob.passed && ob.y > canvas.height) {
+        ob.passed = true;
+        dodged++;
+        score += 10;
+        // update balance UI
+        updateUI();
+        // occasionally decrease spawnInterval for difficulty
+        if (dodged % 20 === 0 && spawnInterval > 300) spawnInterval -= 40;
+      }
+    }
+    // remove offscreen obstacles
+    for (let i = obstacles.length - 1; i >= 0; i--) {
+      if (obstacles[i].y > canvas.height + 100) obstacles.splice(i,1);
+    }
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  function draw() {
+    // background
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    // lanes
+    for (let i=0;i<lanes;i++){
+      ctx.fillStyle = (i%2===0) ? '#121212' : '#151515';
+      ctx.fillRect(i*laneW, 0, laneW, canvas.height);
+      // lane separators
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(i*laneW + laneW - 2, 0);
+      ctx.lineTo(i*laneW + laneW - 2, canvas.height);
+      ctx.stroke();
+    }
+    // obstacles
+    for (let ob of obstacles) {
+      const x = ob.lane * laneW + (laneW - ob.w)/2;
+      ctx.fillStyle = '#ff6b6b';
+      ctx.fillRect(x, ob.y, ob.w, ob.h);
+      ctx.fillStyle = '#7b1f1f';
+      ctx.fillRect(x+2, ob.y+2, ob.w-4, ob.h-4);
+    }
+    // car
+    const carX = car.lane * laneW + (laneW - car.w)/2;
+    ctx.fillStyle = '#00d1b2';
+    roundRect(ctx, carX, car.y, car.w, car.h, 6, true, false);
+    // display text
+    ctx.fillStyle = '#fff';
+    ctx.font = '14px monospace';
+    ctx.fillText(`Score: ${score}`, 8, 20);
+    ctx.fillText(`Dodged: ${dodged}`, 8, 38);
+  }
+
+  function roundRect(ctx, x, y, w, h, r, fill, stroke) {
+    if (typeof r === 'undefined') r = 5;
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+    if (fill) ctx.fill();
+    if (stroke) ctx.stroke();
+  }
+
+  // simple shuffle
+  function shuffle(a) {
+    for (let i=a.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+  }
+
+  // controls
+  document.getElementById('leftBtn').addEventListener('click', ()=> {
+    if (!running) return;
+    if (car.lane > 0) car.lane--;
+    draw();
+  });
+  document.getElementById('rightBtn').addEventListener('click', ()=> {
+    if (!running) return;
+    if (car.lane < lanes-1) car.lane++;
+    draw();
+  });
+  document.getElementById('startBtn').addEventListener('click', ()=> {
+    startGame();
+  });
+
+  // update UI fields
+  function updateUI() {
+    document.getElementById('dodged').innerText = dodged;
+    document.getElementById('score').innerText = score;
+    const pesos = Math.floor(dodged / 1000);
+    document.getElementById('balance').innerText = pesos;
+  }
+  updateUI();
+  draw();
+
+  // Withdraw button -> creates a withdrawal request in Firestore
+  document.getElementById('withdrawBtn').addEventListener('click', async () => {
+    const pesos = Math.floor(dodged / 1000);
+    if (pesos <= 0) {
+      alert('No balance to withdraw yet. Need at least 1000 dodged barriers = 1 peso.');
+      return;
+    }
+    const gcash = prompt('Enter your GCash number for payout (demo):');
+    if (!gcash) return;
+    const req = {
+      userKey,
+      displayName,
+      pesos,
+      gcash,
+      status: 'pending',
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
     };
+    const docRef = await db.collection('withdrawals').add(req);
+    alert('Withdrawal request created (id=' + docRef.id + '). Admin will review.');
+    // Optional: set user's dodged to remainder after withdrawal
+    // For demo, we keep dodged as-is. You may want to subtract pesos*1000.
+  });
 
-    updateTimer(); // Initial call
-    window[`${key}Interval`] = setInterval(updateTimer, 1000); // Store interval ID
-}
+  // ========== Admin panel (client-side password - demo only) ==========
+  const ADMIN_PASSWORD = "Propetas12"; // demo: DO NOT USE IN PRODUCTION
+  const adminBtn = document.getElementById('adminBtn');
+  const adminPanel = document.getElementById('adminPanel');
+  const adminLogin = document.getElementById('adminLogin');
+  const adminLogout = document.getElementById('adminLogout');
+  const adminPasswordInput = document.getElementById('adminPassword');
+  let adminLogged = false;
 
-// --- Initialize User and Listeners ---
-async function initUser() {
-    const userRef = ref(db, 'users/' + userId);
-    const snapshot = await get(userRef);
-    
-    if (!snapshot.exists()) {
-        await set(userRef, {
-            username: telegramUsername, // Use Telegram username as their referral code
-            balance: 0,
-            referralsCount: 0, // Number of users who applied this user's code
-            claimableBonus: 0, // Bonus earned from referrals, to be claimed
-            usedReferral: false, // True if this user has applied someone else's referral code
-            referrerUsername: null, // Stores the username of the referrer
-            createdAt: serverTimestamp()
-        });
-    }
-    
-    onValue(userRef, (snap) => {
-        const data = snap.val();
-        userBalance = data.balance || 0;
-        userReferralsCount = data.referralsCount || 0;
-        userClaimableBonus = data.claimableBonus || 0;
-        userHasAppliedReferral = data.usedReferral || false;
+  adminBtn.addEventListener('click', ()=> {
+    adminPanel.style.display = adminPanel.style.display === 'none' ? 'block' : 'none';
+  });
 
-        document.getElementById('userBalance').innerText = `₱${userBalance.toFixed(4)}`;
-        document.getElementById('telegramUsername').innerText = telegramUsername;
-        document.getElementById('myReferralCode').innerText = telegramUsername;
-        document.getElementById('totalReferrals').innerText = userReferralsCount;
-        document.getElementById('claimableBonus').innerText = userClaimableBonus.toFixed(4);
-        
-        // Enable/disable claim button
-        const claimBtn = document.getElementById('claimReferralBonusBtn');
-        if (claimBtn) claimBtn.disabled = userClaimableBonus <= 0;
-
-        // Disable apply referral button if already used
-        const applyReferralBtn = document.getElementById('applyReferralBtn');
-        const inputReferral = document.getElementById('inputReferral');
-        if (userHasAppliedReferral) {
-            if (applyReferralBtn) applyReferralBtn.disabled = true;
-            if (inputReferral) inputReferral.placeholder = `Applied by: ${data.referrerUsername || 'N/A'}`;
-            if (inputReferral) inputReferral.value = ''; // Clear input if already applied
-            if (inputReferral) inputReferral.disabled = true;
-        } else {
-            if (applyReferralBtn) applyReferralBtn.disabled = false;
-            if (inputReferral) inputReferral.disabled = false;
-            if (inputReferral) inputReferral.placeholder = "Enter referrer's Telegram Username";
-        }
-    });
-
-    // Start cooldown timers
-    updateCooldownDisplay('adCooldown', 'adCooldownTimer', 'watchAdBtn', AD_COOLDOWN_SECONDS);
-    updateCooldownDisplay('bonusAdCooldown', 'bonusAdCooldownTimer', 'bonusAdBtn', BONUS_AD_COOLDOWN_MINUTES * 60);
-    updateCooldownDisplay('donationAd1Cooldown', 'donationAd1Cooldown', null, DONATION_AD_COOLDOWN_MINUTES * 60);
-    updateCooldownDisplay('donationAd2Cooldown', 'donationAd2Cooldown', null, DONATION_AD_COOLDOWN_MINUTES * 60);
-    updateCooldownDisplay('donationAd3Cooldown', 'donationAd3Cooldown', null, DONATION_AD_COOLDOWN_MINUTES * 60);
-
-    // Show in-app interstitial on app open
-    showInAppInterstitialOnOpen();
-
-    // Show invite popup on login
-    showInvitePopup();
-}
-
-// --- Invite Popup Logic ---
-function showInvitePopup() {
-    const popup = document.getElementById('invitePopup');
-    if (popup) {
-        popup.classList.add('show');
-        setTimeout(() => {
-            popup.classList.remove('show');
-        }, 2000); // Hide after 2 seconds
-    }
-}
-
-
-// --- Monetag Ad Logic ---
-function showRandomRewardedAd(type = 'interstitial') {
-    const randomAdFunction = MONETAG_REWARDED_ADS[Math.floor(Math.random() * MONETAG_REWARDED_ADS.length)];
-    if (typeof randomAdFunction === 'function') {
-        if (type === 'interstitial') {
-            return randomAdFunction();
-        } else if (type === 'popup') {
-            return randomAdFunction('pop');
-        }
-    }
-    return Promise.reject('Ad SDK not ready or function not found.');
-}
-
-window.watchAd = function() {
-    if (getCooldown('adCooldown') > Date.now()) {
-        alert("Please wait for the cooldown to finish.");
-        return;
-    }
-
-    showRandomRewardedAd('interstitial').then(() => {
-        const newBalance = userBalance + REWARD_PER_AD;
-        update(ref(db, 'users/' + userId), { balance: newBalance });
-        setCooldown('adCooldown', AD_COOLDOWN_SECONDS);
-        updateCooldownDisplay('adCooldown', 'adCooldownTimer', 'watchAdBtn', AD_COOLDOWN_SECONDS);
-        alert(`Congrats! You earned ₱${REWARD_PER_AD.toFixed(4)}`);
-        showPsychTip();
-    }).catch(e => {
-        console.error("Ad error:", e);
-        alert('Ad failed to load or was closed prematurely. Try again.');
-    });
-};
-
-window.showRandomRewardedPopup = function() {
-    if (getCooldown('bonusAdCooldown') > Date.now()) {
-        alert("Please wait for the bonus ad cooldown to finish.");
-        return;
-    }
-
-    showRandomRewardedAd('popup').then(() => {
-        const newBalance = userBalance + REWARD_PER_BONUS_AD;
-        update(ref(db, 'users/' + userId), { balance: newBalance });
-        setCooldown('bonusAdCooldown', BONUS_AD_COOLDOWN_MINUTES * 60);
-        updateCooldownDisplay('bonusAdCooldown', 'bonusAdCooldownTimer', 'bonusAdBtn', BONUS_AD_COOLDOWN_MINUTES * 60);
-        alert(`Bonus! You earned ₱${REWARD_PER_BONUS_AD.toFixed(4)}`);
-        showPsychTip();
-    }).catch(e => {
-        console.error("Popup Ad error:", e);
-        alert('Bonus Ad failed to load or was closed prematurely. Try again.');
-    });
-};
-
-// In-App Interstitial on App Open
-function showInAppInterstitialOnOpen() {
-    if (getCooldown('inAppInterstitialCooldown') > Date.now()) {
-        return;
-    }
-
-    const randomAdFunction = MONETAG_REWARDED_ADS[Math.floor(Math.random() * MONETAG_REWARDED_ADS.length)];
-    if (typeof randomAdFunction === 'function') {
-        randomAdFunction({
-            type: 'inApp',
-            inAppSettings: {
-                frequency: 1, // Show once
-                capping: 0.1,
-                interval: 30,
-                timeout: 5,
-                everyPage: false
-            }
-        });
-        setCooldown('inAppInterstitialCooldown', IN_APP_INTERSTITIAL_COOLDOWN_MINUTES * 60);
+  adminLogin.addEventListener('click', async () => {
+    if (adminPasswordInput.value === ADMIN_PASSWORD) {
+      adminLogged = true;
+      alert('Admin demo login success');
+      loadWithdrawals();
     } else {
-        console.warn('Monetag In-App Interstitial SDK not ready.');
+      alert('Wrong admin password (demo).');
     }
-}
+  });
+  adminLogout.addEventListener('click', ()=> {
+    adminLogged = false;
+    document.getElementById('withdrawList').innerHTML = '';
+  });
 
-// Donation Ad (Native Card Click)
-window.showDonationAd = function(cooldownKey) {
-    if (getCooldown(cooldownKey) > Date.now()) {
-        alert("Please wait for the cooldown to finish for this donation ad.");
-        return;
-    }
-
-    showRandomRewardedAd('interstitial').then(() => {
-        setCooldown(cooldownKey, DONATION_AD_COOLDOWN_MINUTES * 60);
-        updateCooldownDisplay(cooldownKey, cooldownKey + 'Cooldown', null, DONATION_AD_COOLDOWN_MINUTES * 60);
-        alert("Thank you for your donation! Your support helps us keep the app running!");
-    }).catch(e => {
-        console.error("Donation Ad error:", e);
-        alert('Donation Ad failed to load or was closed prematurely. Thank you for trying anyway!');
+  async function loadWithdrawals() {
+    if (!adminLogged) return alert('Not admin (demo).');
+    const q = await db.collection('withdrawals').orderBy('createdAt', 'desc').limit(200).get();
+    const container = document.getElementById('withdrawList');
+    container.innerHTML = '';
+    q.forEach(doc=>{
+      const d = doc.data();
+      const id = doc.id;
+      const row = document.createElement('div');
+      row.style.borderBottom = '1px solid #222';
+      row.style.padding = '8px 0';
+      row.innerHTML = `
+        <div><strong>${d.displayName}</strong> — ${d.pesos} PHP — <span style="color:#999">${d.status}</span></div>
+        <div class="small">GCash: ${d.gcash || '—'} • id: ${id}</div>
+      `;
+      const btnApprove = document.createElement('button');
+      btnApprove.className = 'btn';
+      btnApprove.innerText = 'Approve';
+      btnApprove.onclick = async () => {
+        await db.collection('withdrawals').doc(id).update({ status: 'approved', processedAt: firebase.firestore.FieldValue.serverTimestamp(), admin: displayName });
+        alert('Marked approved (demo). Remember: actually pay via your payment system.');
+        loadWithdrawals();
+      };
+      const btnReject = document.createElement('button');
+      btnReject.className = 'btn secondary';
+      btnReject.style.marginLeft = '8px';
+      btnReject.innerText = 'Reject';
+      btnReject.onclick = async () => {
+        const reason = prompt('Reason (optional):','');
+        await db.collection('withdrawals').doc(id).update({ status: 'rejected', reason, processedAt: firebase.firestore.FieldValue.serverTimestamp(), admin: displayName });
+        loadWithdrawals();
+      };
+      row.appendChild(btnApprove);
+      row.appendChild(btnReject);
+      container.appendChild(row);
     });
-};
+  }
 
+  // keep user lastSeen updated periodically
+  setInterval(()=> {
+    userDocRef.set({ lastSeen: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+  }, 60_000);
 
-// --- Tabs Navigation ---
-window.showTab = function(tabId) {
-    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-    document.getElementById(tabId).classList.add('active');
-    if(tabId === 'leaderboard') loadLeaderboard();
-    if(tabId === 'chat') loadChat();
-    // Ensure withdrawal history is loaded/updated whenever the 'earn' tab is active
-    if(tabId === 'earn') loadWithdrawalHistory(); 
-};
-
-// --- Leaderboard Logic ---
-function loadLeaderboard() {
-    const usersRef = query(ref(db, 'users'), orderByChild('balance'), limitToLast(10));
-    onValue(usersRef, (snap) => {
-        const list = document.getElementById('leaderboardList');
-        list.innerHTML = "";
-        const users = [];
-        snap.forEach(child => { users.push({ id: child.key, ...child.val() }); });
-        users.sort((a, b) => b.balance - a.balance).forEach((u, i) => { // Ensure correct sorting
-            list.innerHTML += `<div class="flex justify-between p-3 bg-white rounded-lg shadow-sm border-l-4 ${u.id === userId ? 'border-sky-700' : 'border-sky-400'}">
-                <span>${i+1}. ${u.username} ${u.id === userId ? '(You)' : ''}</span>
-                <span class="font-bold text-sky-600">₱${u.balance.toFixed(4)}</span>
-            </div>`;
-        });
-    });
-}
-
-// --- Chat Logic ---
-window.sendMessage = function() {
-    const text = document.getElementById('chatInput').value.trim();
-    if(!text) return;
-    push(ref(db, 'chats'), {
-        user: telegramUsername,
-        text: text,
-        time: serverTimestamp()
-    });
-    document.getElementById('chatInput').value = "";
-};
-
-function loadChat() {
-    const chatRef = query(ref(db, 'chats'), orderByChild('time'), limitToLast(20));
-    onValue(chatRef, (snap) => {
-        const container = document.getElementById('chatMessages');
-        container.innerHTML = "";
-        snap.forEach(msg => {
-            const d = msg.val();
-            const messageTime = d.time ? new Date(d.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A';
-            container.innerHTML += `<div class="p-2 bg-sky-50 rounded shadow-sm text-sm">
-                <b class="text-sky-700">${d.user}:</b> ${d.text} <span class="text-gray-400 text-xs float-right">${messageTime}</span>
-            </div>`;
-        });
-        container.scrollTop = container.scrollHeight;
-    });
-}
-
-// --- Withdrawal Logic ---
-window.requestWithdrawal = async function() {
-    const gcash = document.getElementById('gcashNumber').value.trim();
-    if(gcash.length < 10 || !/^\d+$/.test(gcash)) return alert("Please enter a valid GCash number (e.g., 09xxxxxxxxx).");
-    if(userBalance < 0.02) return alert("Minimum withdrawal is ₱0.02");
-
-    // Prevent multiple pending withdrawal requests
-    const pendingWithdrawalsSnap = await get(query(ref(db, 'withdrawals'), orderByChild('userId'), equalTo(userId)));
-    let hasPending = false;
-    pendingWithdrawalsSnap.forEach(wd => {
-        if(wd.val().status === 'pending') hasPending = true;
-    });
-    if(hasPending) return alert("You already have a pending withdrawal request.");
-
-    const wdRef = push(ref(db, 'withdrawals'));
-    await set(wdRef, {
-        userId, 
-        userName: telegramUsername, 
-        gcash, 
-        amount: parseFloat(userBalance.toFixed(4)), // Store exact amount
-        status: 'pending',
-        timestamp: serverTimestamp()
-    });
-    await update(ref(db, 'users/' + userId), { balance: 0 }); // Reset balance after request
-    alert("Withdrawal Requested! Please wait for admin approval.");
-};
-
-// Listen for user's withdrawal history in real-time
-function loadWithdrawalHistory() {
-    const historyRef = query(ref(db, 'withdrawals'), orderByChild('userId'), equalTo(userId));
-    onValue(historyRef, (snap) => {
-        const container = document.getElementById('withdrawalHistory');
-        container.innerHTML = "";
-        if (!snap.exists()) {
-            container.innerHTML = "<p class='text-gray-400'>No withdrawals yet.</p>";
-            return;
-        }
-
-        const withdrawals = [];
-        snap.forEach(wd => withdrawals.push({ id: wd.key, ...wd.val() }));
-        withdrawals.sort((a, b) => b.timestamp - a.timestamp); // Sort by newest first
-
-        withdrawals.forEach(wd => {
-            const date = wd.timestamp ? new Date(wd.timestamp).toLocaleString() : 'N/A';
-            let statusColor = 'text-gray-600';
-            if (wd.status === 'pending') statusColor = 'text-yellow-600';
-            else if (wd.status === 'paid') statusColor = 'text-green-600';
-            else if (wd.status === 'rejected') statusColor = 'text-red-600';
-
-            container.innerHTML += `<div class="p-2 bg-gray-50 rounded shadow-sm flex justify-between items-center">
-                <div>
-                    <p class="font-semibold">₱${wd.amount.toFixed(4)} to ${wd.gcash}</p>
-                    <p class="text-xs text-gray-500">${date}</p>
-                </div>
-                <span class="text-sm font-bold ${statusColor}">${wd.status.toUpperCase()}</span>
-            </div>`;
-        });
-    });
-}
-
-
-// --- Admin Logic ---
-window.checkAdmin = function() {
-    const pass = document.getElementById('adminPass').value;
-    if(pass === "Propetas12") {
-        document.getElementById('adminLoginPanel').classList.add('hidden');
-        document.getElementById('adminPanel').classList.remove('hidden');
-        loadAdminData();
-    } else {
-        alert("Wrong Password");
-    }
-};
-
-// Listen for admin withdrawal requests in real-time
-function loadAdminData() {
-    onValue(query(ref(db, 'withdrawals'), orderByChild('status')), (snap) => {
-        const container = document.getElementById('adminWithdrawals');
-        container.innerHTML = "";
-        if (!snap.exists()) {
-            container.innerHTML = "<p class='text-gray-400'>No withdrawal requests.</p>";
-            return;
-        }
-
-        const allWithdrawals = [];
-        snap.forEach(wd => allWithdrawals.push({ id: wd.key, ...wd.val() }));
-
-        // Sort to show pending first, then others by timestamp
-        allWithdrawals.sort((a, b) => {
-            if (a.status === 'pending' && b.status !== 'pending') return -1;
-            if (a.status !== 'pending' && b.status === 'pending') return 1;
-            // Handle cases where timestamp might be null (e.g., new entries before serverTimestamp resolves)
-            const timeA = a.timestamp || 0;
-            const timeB = b.timestamp || 0;
-            return timeB - timeA; // Newest first for non-pending
-        });
-
-        allWithdrawals.forEach(wd => {
-            const data = wd;
-            const wdId = wd.id;
-            const date = data.timestamp ? new Date(data.timestamp).toLocaleString() : 'N/A';
-            
-            let actionButtons = '';
-            if (data.status === 'pending') {
-                actionButtons = `
-                    <button onclick="updateWithdrawalStatus('${wdId}', 'paid')" class="bg-green-500 text-white px-2 py-1 rounded ml-2 text-xs">Mark Paid</button>
-                    <button onclick="updateWithdrawalStatus('${wdId}', 'rejected')" class="bg-red-500 text-white px-2 py-1 rounded ml-1 text-xs">Reject</button>
-                `;
-            } else {
-                actionButtons = `<span class="text-sm font-bold ${data.status === 'paid' ? 'text-green-600' : 'text-red-600'}">${data.status.toUpperCase()}</span>`;
-            }
-
-            container.innerHTML += `<div class="border-b p-2 text-xs flex justify-between items-center">
-                <div>
-                    <p><b>${data.userName}</b> (ID: ${data.userId})</p>
-                    <p>${data.gcash} | ₱${data.amount.toFixed(4)}</p>
-                    <p class="text-gray-500">${date}</p>
-                </div>
-                <div>${actionButtons}</div>
-            </div>`;
-        });
-    });
-}
-
-window.updateWithdrawalStatus = async function(wdId, newStatus) {
-    if (confirm(`Are you sure you want to mark this withdrawal as ${newStatus}?`)) {
-        await update(ref(db, 'withdrawals/' + wdId), { status: newStatus });
-        alert(`Withdrawal marked as ${newStatus}!`);
-    }
-};
-
-// --- Referral Logic ---
-window.copyReferralCode = function() {
-    const code = document.getElementById('myReferralCode').innerText;
-    navigator.clipboard.writeText(code).then(() => {
-        alert("Your Telegram username copied as referral code!");
-    }).catch(err => {
-        console.error('Failed to copy text: ', err);
-        alert("Failed to copy code. Please copy manually.");
-    });
-};
-
-window.applyReferral = async function() {
-    const referrerUsername = document.getElementById('inputReferral').value.trim();
-    if (!referrerUsername) return alert("Please enter referrer's Telegram username.");
-
-    if(userHasAppliedReferral) return alert("You have already applied a referrer's code.");
-
-    // Prevent self-referral
-    if (telegramUsername.toLowerCase() === referrerUsername.toLowerCase()) return alert("You cannot refer yourself.");
-
-    // Find the referrer by username
-    const usersRef = ref(db, 'users');
-    const snapshot = await get(query(usersRef, orderByChild('username'), equalTo(referrerUsername)));
-    
-    let referrerId = null;
-    snapshot.forEach(child => {
-        if (child.val().username.toLowerCase() === referrerUsername.toLowerCase()) {
-            referrerId = child.key;
-        }
-    });
-
-    if(referrerId) {
-        // Increment referrer's claimable bonus and referrals count
-        const referrerRef = ref(db, 'users/' + referrerId);
-        const referrerSnap = await get(referrerRef);
-        const referrerData = referrerSnap.val();
-
-        await update(referrerRef, { 
-            claimableBonus: (referrerData.claimableBonus || 0) + REWARD_PER_REFERRAL,
-            referralsCount: (referrerData.referralsCount || 0) + 1
-        });
-        
-        // Mark current user as having used a referral and save referrer's username
-        await update(ref(db, 'users/' + userId), { 
-            usedReferral: true,
-            referrerUsername: referrerUsername // Store the referrer's username
-        });
-
-        alert(`Referrer '${referrerUsername}' has received a bonus!`);
-        document.getElementById('inputReferral').value = ''; // Clear input
-        // The onValue listener will automatically disable the input and button
-    } else {
-        alert("Invalid or non-existent referrer Telegram username.");
-    }
-};
-
-window.claimReferralBonus = async function() {
-    if (userClaimableBonus <= 0) {
-        alert("You have no claimable referral bonus.");
-        return;
-    }
-
-    if (confirm(`Claim ₱${userClaimableBonus.toFixed(4)} referral bonus?`)) {
-        // Use a transaction or careful update to ensure atomicity
-        const updates = {};
-        updates['/users/' + userId + '/balance'] = userBalance + userClaimableBonus;
-        updates['/users/' + userId + '/claimableBonus'] = 0; // Reset claimable bonus
-
-        await update(ref(db), updates);
-        alert(`₱${userClaimableBonus.toFixed(4)} claimed successfully and added to your balance!`);
-        // The onValue listener will update the UI
-    }
-};
-
-// Start the app
-initUser();
+})();
