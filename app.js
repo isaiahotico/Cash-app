@@ -4,7 +4,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebas
 import {
   getFirestore, doc, setDoc, getDoc, onSnapshot, collection,
   addDoc, query, where, orderBy, limit, updateDoc, serverTimestamp,
-  runTransaction, increment
+  runTransaction, increment, getDocs // Import getDocs for queries
 } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
 
@@ -53,24 +53,23 @@ function formatMoney(n) {
   return parseFloat(n).toFixed(4);
 }
 
+// --- Initial Telegram User Data ---
+// Get Telegram user data immediately on load
+const tUser = tg.initDataUnsafe?.user || { id: `tg_${Date.now()}`, first_name: 'User', username: null };
+const tgId = tUser.id?.toString();
+const currentDisplayName = tUser.username ? `@${tUser.username}` : (tUser.first_name || 'Anonymous');
+const currentReferralCode = tUser.username ? tUser.username.toLowerCase() : authUid; // Use username as referral code
+
+// Display initial Telegram user data immediately
+document.getElementById('user-display').innerText = currentDisplayName;
+document.getElementById('my-ref-code').innerText = currentReferralCode;
+
+
 /* === AUTH STATE === */
 onAuthStateChanged(auth, async (user) => {
   if (!user) return;
   authUid = user.uid;
 
-  // Telegram data
-  const tUser = tg.initDataUnsafe?.user || { id: `tg_${Date.now()}`, first_name: 'User', username: null };
-  const tgId = tUser.id?.toString();
-  
-  // Determine display name and referral code based on Telegram user data
-  const displayName = tUser.username ? `@${tUser.username}` : (tUser.first_name || 'Anonymous');
-  const referralCode = tUser.username ? tUser.username.toLowerCase() : authUid; // Use username as referral code
-
-  document.getElementById('user-display').innerText = displayName;
-  document.getElementById('my-ref-code').innerText = referralCode;
-
-
-  // User doc path: users/{authUid}
   userDocRef = doc(db, 'users', authUid);
 
   // Check telegram index for duplicates
@@ -96,8 +95,8 @@ onAuthStateChanged(auth, async (user) => {
     await setDoc(userDocRef, {
       authUid,
       telegramId: tgId,
-      username: displayName, // Store current Telegram display name
-      referralCode: referralCode, // Store current referral code
+      username: currentDisplayName, // Store current Telegram display name
+      referralCode: currentReferralCode, // Store current referral code
       refBy: null, // Who referred this user
       refCount: 0, // How many users this user referred
       refBonus: 0, // Earned bonus from referrals
@@ -119,11 +118,12 @@ onAuthStateChanged(auth, async (user) => {
       updates.isDuplicate = true;
       updates.isBanned = true;
     }
-    if (existing.username !== displayName) {
-      updates.username = displayName;
+    // Only update if the value from Telegram is different from what's in Firestore
+    if (existing.username !== currentDisplayName) {
+      updates.username = currentDisplayName;
     }
-    if (existing.referralCode !== referralCode) {
-      updates.referralCode = referralCode;
+    if (existing.referralCode !== currentReferralCode) {
+      updates.referralCode = currentReferralCode;
     }
     if (Object.keys(updates).length > 0) {
       await updateDoc(userDocRef, updates).catch(()=>{});
@@ -200,7 +200,7 @@ function setupRealtimeListeners() {
       const w = docSnap.data();
       const date = w.createdAt?.toDate ? w.createdAt.toDate().toLocaleString() : '';
       const statusClass = w.status === 'Paid' ? 'text-green-600' : (w.status === 'Pending' ? 'text-orange-500' : 'text-red-600');
-      el.innerHTML += `<div class="p-2 border-b flex justify-between"><div><div class="font-bold">₱${parseFloat(w.amount).toFixed(4)} → ${w.gcash}</div><div class="text-xs text-gray-500">${date}</div></div><div class="${statusClass} font-semibold">${w.status}</div></div>`;
+      el.innerHTML += `<div class="p-2 border-b flex justify-between"><div><div class="font-bold">₱${parseFloat(w.amount).toFixed(4)} → ${w.gcash}</div><div class="text-xs text-gray-500">${w.username} • ${date}</div></div><div class="${statusClass} font-semibold">${w.status}</div></div>`;
     });
   });
 
@@ -258,7 +258,7 @@ window.watchHighRewardAd = async function() {
   const now = Date.now();
   if ((now - (userData.lastHighReward || 0)) < HIGH_COOLDOWN_MS) return tg.showAlert('Wait 30s cooldown.');
 
-  const ad = getRandomAdZone(); // Changed to getRandomAdZone
+  const ad = getRandomAdZone();
   tg.MainButton.setText('LOADING AD...').show();
 
   try {
@@ -277,7 +277,7 @@ window.watchRandomRewardAd = async function() {
   const now = Date.now();
   if ((now - (userData.lastRandomReward || 0)) < RANDOM_COOLDOWN_MS) return tg.showAlert('Wait 10min cooldown.');
 
-  const ad = getRandomAdZone(); // Changed to getRandomAdZone
+  const ad = getRandomAdZone();
   tg.MainButton.setText('LOADING POP...').show();
 
   try {
