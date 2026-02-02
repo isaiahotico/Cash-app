@@ -23,6 +23,179 @@
   firebaseUser = auth.currentUser;
 
 
+// --- Popunder Settings ---
+const POPUNDER_COOLDOWN_HOURS = 24; // How long before the popunder can show again for the same user (in hours)
+const POPUNDER_INITIAL_DELAY_SECONDS = 5; // Delay before the popunder attempts to show (in seconds)
+const POPUNDER_CARD_DISPLAY_DURATION_SECONDS = 30; // How long the card stays visible if not closed manually
+
+// --- Ad Scripts to be Loaded ---
+const POPUNDER_AD_SCRIPT_URL = "https://pl27853087.effectivegatecpm.com/fa/f9/df/faf9df00762374e3ad9510afe003e978.js";
+const BANNER_AD_INVOKE_SCRIPT_URL = "https://www.highperformanceformat.com/fe70943384c0314737bd62c05e3d520a/invoke.js";
+
+// --- DOM Elements ---
+const popunderCard = document.getElementById('popunderCard');
+const closePopunderCardBtn = document.getElementById('closePopunderCard');
+const cooldownMessage = document.getElementById('cooldownMessage');
+const adSlot1 = document.getElementById('adSlot1');
+
+// --- Helper Functions ---
+
+/**
+ * Generates a unique user ID. For a more robust solution, consider Firebase Authentication.
+ * For simplicity, this uses a combination of localStorage and a simple UUID.
+ */
+function getOrCreateUserId() {
+    let userId = localStorage.getItem('popunderUserId');
+    if (!userId) {
+        userId = 'user_' + Math.random().toString(36).substr(2, 9) + Date.now();
+        localStorage.setItem('popunderUserId', userId);
+    }
+    return userId;
+}
+
+/**
+ * Checks if the popunder is currently on cooldown for the user.
+ * @param {string} userId - The unique ID of the user.
+ * @returns {Promise<boolean>} True if on cooldown, false otherwise.
+ */
+async function isOnCooldown(userId) {
+    try {
+        const docRef = db.collection('popunderCooldowns').doc(userId);
+        const doc = await docRef.get();
+
+        if (doc.exists) {
+            const lastShown = doc.data().lastShown.toDate();
+            const cooldownEndTime = new Date(lastShown.getTime() + POPUNDER_COOLDOWN_HOURS * 60 * 60 * 1000);
+            const now = new Date();
+
+            if (now < cooldownEndTime) {
+                const timeLeftMs = cooldownEndTime.getTime() - now.getTime();
+                const hoursLeft = Math.ceil(timeLeftMs / (1000 * 60 * 60));
+                cooldownMessage.textContent = `Popunder will reappear in approximately ${hoursLeft} hour(s).`;
+                return true; // Still on cooldown
+            }
+        }
+        return false; // Not on cooldown or no record
+    } catch (error) {
+        console.error("Error checking cooldown:", error);
+        return false;
+    }
+}
+
+/**
+ * Records the current time as the last time the popunder was shown for the user.
+ * @param {string} userId - The unique ID of the user.
+ */
+async function recordPopunderShown(userId) {
+    try {
+        await db.collection('popunderCooldowns').doc(userId).set({
+            lastShown: firebase.firestore.FieldValue.serverTimestamp(),
+            userAgent: navigator.userAgent,
+            timestamp: new Date() // For local debugging if serverTimestamp is delayed
+        }, { merge: true });
+        console.log("Popunder shown recorded for user:", userId);
+    } catch (error) {
+        console.error("Error recording popunder shown:", error);
+    }
+}
+
+/**
+ * Dynamically loads a JavaScript file.
+ * @param {string} url - The URL of the script to load.
+ * @param {HTMLElement} parentElement - The element to append the script to (e.g., document.head or a specific div).
+ */
+function loadScript(url, parentElement = document.head) {
+    return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = url;
+        script.onload = resolve;
+        script.onerror = reject;
+        parentElement.appendChild(script);
+    });
+}
+
+/**
+ * Inserts the 'atOptions' object and then loads the 'invoke.js' script.
+ * This is specific to the ad network's implementation.
+ */
+function loadBannerAd() {
+    // Define atOptions globally for the invoke.js script
+    window.atOptions = {
+        'key' : 'fe70943384c0314737bd62c05e3d520a',
+        'format' : 'iframe',
+        'height' : 300,
+        'width' : 160,
+        'params' : {}
+    };
+
+    // Load the invoke.js script into adSlot1
+    loadScript(BANNER_AD_INVOKE_SCRIPT_URL, adSlot1)
+        .then(() => console.log("Banner ad script loaded."))
+        .catch(error => console.error("Error loading banner ad script:", error));
+}
+
+/**
+ * Displays the popunder card on the page and loads ads.
+ */
+function showPopunderCard() {
+    popunderCard.style.display = 'block';
+    cooldownMessage.textContent = ''; // Clear any previous cooldown message
+
+    // Load the banner ad into the card
+    loadBannerAd();
+
+    // Automatically hide the card after a duration if not closed manually
+    setTimeout(() => {
+        hidePopunderCard();
+    }, POPUNDER_CARD_DISPLAY_DURATION_SECONDS * 1000);
+}
+
+/**
+ * Hides the popunder card from the page.
+ */
+function hidePopunderCard() {
+    popunderCard.style.display = 'none';
+}
+
+// --- Main Popunder Logic ---
+document.addEventListener('DOMContentLoaded', () => {
+    const userId = getOrCreateUserId();
+
+    // Event listener for closing the card
+    closePopunderCardBtn.addEventListener('click', () => {
+        hidePopunderCard();
+    });
+
+    // Initial delay before checking and potentially showing the popunder
+    setTimeout(async () => {
+        const onCooldown = await isOnCooldown(userId);
+
+        if (!onCooldown) {
+            // 1. Load the popunder script
+            loadScript(POPUNDER_AD_SCRIPT_URL, document.body) // Load into body or head
+                .then(() => {
+                    console.log("Popunder script loaded. It should attempt to open a new window.");
+                })
+                .catch(error => {
+                    console.error("Error loading popunder script:", error);
+                });
+
+            // 2. Show the card with banner ads
+            showPopunderCard();
+
+            // 3. Record that the popunder event (both window and card) was triggered
+            recordPopunderShown(userId);
+
+        } else {
+            console.log("Popunder is on cooldown for this user.");
+            // Optionally, if you want to display the cooldown message even when the card is hidden:
+            // popunderCard.style.display = 'block';
+            // setTimeout(() => { popunderCard.style.display = 'none'; }, 5000);
+        }
+    }, POPUNDER_INITIAL_DELAY_SECONDS * 1000);
+});
+
+
 // --- Pop-under with Cooldown Script ---
 (function() {
     const COOLDOWN_MINUTES = 60; // Set cooldown period in minutes (e.g., 60 minutes = 1 hour)
