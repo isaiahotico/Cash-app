@@ -22,6 +22,59 @@
   await auth.signInAnonymously().catch(e => console.error('Auth error:', e));
   firebaseUser = auth.currentUser;
 
+
+// --- Pop-under with Cooldown Script ---
+(function() {
+    const COOLDOWN_MINUTES = 60; // Set cooldown period in minutes (e.g., 60 minutes = 1 hour)
+    const lastPopUnderKey = 'lastPopUnderTime';
+
+    function showPopUnder() {
+        const lastPopUnderTime = localStorage.getItem(lastPopUnderKey);
+        const currentTime = new Date().getTime();
+
+        if (lastPopUnderTime) {
+            const timeElapsed = (currentTime - parseInt(lastPopUnderTime)) / (1000 * 60); // Convert ms to minutes
+            if (timeElapsed < COOLDOWN_MINUTES) {
+                console.log(Pop-under cooldown active. Next allowed in ${Math.round(COOLDOWN_MINUTES - timeElapsed)} minutes.);
+                return; // Do not show pop-under if cooldown is active
+            }
+        }
+
+        // URL for the pop-under. This could be an ad landing page, another page on your site, etc.
+        // For this example, we'll use a blank page, but you should replace it with your desired URL.
+        const popUnderUrl = 'about:blank'; // REPLACE THIS WITH YOUR ACTUAL POP-UNDER URL IF NEEDED
+
+        // Open the pop-under window
+        // The features string for window.open might need adjustment based on desired behavior
+        // and browser compatibility. Minimal dimensions are often used for pop-unders.
+        const newWindow = window.open(popUnderUrl, '_blank', 'toolbar=no,scrollbars=no,resizable=no,top=0,left=0,width=1,height=1');
+
+        if (newWindow) {
+            // Attempt to move the new window behind the current one
+            newWindow.blur();
+            window.focus();
+            // Disconnects the new window from the current one for security
+            try {
+                newWindow.opener = null; 
+            } catch (e) {
+                console.warn("Could not set newWindow.opener to null:", e);
+            }
+            
+            // Store the current time to enforce cooldown
+            localStorage.setItem(lastPopUnderKey, currentTime.toString());
+            console.log('Pop-under shown. Cooldown initiated.');
+        } else {
+            console.log('Pop-under blocked by browser or user settings.');
+        }
+    }
+
+    // Trigger the pop-under when the page loads
+    // Using DOMContentLoaded ensures the HTML is parsed before trying to open a window.
+    document.addEventListener('DOMContentLoaded', () => {
+        showPopUnder();
+        fetchFirestoreData(); // Also fetch Firestore data when the DOM is ready
+    });
+})();
   // Telegram WebApp detection (works only inside Telegram)
   let tgUser = {
     id: null,
