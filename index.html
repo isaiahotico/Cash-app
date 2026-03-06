@@ -3,84 +3,100 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FreeGcashAds - Watch & Earn</title>
+    <title>FreeGcashAds</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://www.youtube.com/iframe_api"></script>
     <style>
-        .hidden-section { display: none; }
-        #video-overlay { display: none; background: rgba(0,0,0,0.9); }
+        #video-overlay { display: none; background: rgba(0,0,0,0.95); position: fixed; inset: 0; z-index: 999; }
+        .glass { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen pb-20">
+<body class="bg-slate-50 min-h-screen pb-24 font-sans text-slate-900">
 
-    <!-- Auth / Profile Header -->
-    <nav class="bg-blue-600 text-white p-4 shadow-lg sticky top-0 z-50">
+    <!-- Header -->
+    <nav class="glass sticky top-0 z-50 border-b border-slate-200 p-4">
         <div class="container mx-auto flex justify-between items-center">
-            <h1 class="font-bold text-xl">FreeGcashAds</h1>
-            <div id="user-stats" class="text-right">
-                <p id="display-username" class="text-sm font-mono">@loading...</p>
-                <p class="text-xs">Balance: <span id="balance" class="font-bold text-yellow-300">0.00</span> PHP</p>
+            <div>
+                <h1 class="font-black text-xl text-blue-600 italic">FreeGcashAds</h1>
+                <p id="display-username" class="text-xs font-bold text-slate-500">@loading...</p>
+            </div>
+            <div class="text-right">
+                <p class="text-[10px] uppercase tracking-widest text-slate-400">Balance</p>
+                <p class="text-lg font-black text-green-600"><span id="balance">0.00</span> <span class="text-xs">PHP</span></p>
             </div>
         </div>
     </nav>
 
-    <!-- Main Content -->
     <main class="container mx-auto p-4 max-w-md">
         
-        <!-- Registration Modal (Simplified for Telegram) -->
-        <div id="auth-box" class="bg-white p-6 rounded-xl shadow-md mb-6 hidden-section">
-            <h2 class="text-xl font-bold mb-4">Enter Telegram Username</h2>
-            <input type="text" id="tg-input" placeholder="@username" class="w-full border p-2 rounded mb-4">
-            <button onclick="register()" class="w-full bg-blue-500 text-white py-2 rounded font-bold">Start Earning</button>
+        <!-- Referral Section -->
+        <div class="bg-blue-600 rounded-3xl p-5 text-white shadow-xl shadow-blue-200 mb-6">
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <h3 class="text-sm font-medium opacity-80">Referral Code</h3>
+                    <p id="my-ref-code" class="text-2xl font-mono font-bold tracking-tighter">------</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-[10px] opacity-70">COMMISSION</p>
+                    <p class="text-xl font-bold text-yellow-300">20%</p>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-2 mb-4 bg-blue-700/50 p-3 rounded-2xl">
+                <div>
+                    <p class="text-[10px] opacity-70 uppercase">Total Invites</p>
+                    <p id="total-invites" class="font-bold">0</p>
+                </div>
+                <div>
+                    <p class="text-[10px] opacity-70 uppercase">Earned from Ref</p>                    <p id="total-ref-earned" class="font-bold">0.00</p>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <input type="text" id="input-ref-code" placeholder="Enter 6-digit code" class="flex-1 px-4 py-2 rounded-xl text-slate-900 text-sm focus:outline-none">
+                <button onclick="submitReferral()" class="bg-white text-blue-600 px-4 py-2 rounded-xl font-bold text-sm hover:bg-yellow-400 transition">Confirm</button>
+            </div>
         </div>
 
-        <!-- Dashboard -->
-        <div id="main-dashboard">
-            <!-- Referral Box -->
-            <div class="bg-gradient-to-r from-purple-500 to-indigo-600 text-white p-4 rounded-xl mb-6 shadow-md">
-                <h3 class="font-bold mb-2">Invite & Earn 20%</h3>
-                <p class="text-xs mb-3">Your Code: <span id="my-ref-code" class="font-mono bg-white text-indigo-600 px-2 py-1 rounded">...</span></p>
-                <div class="flex gap-2">
-                    <input type="text" id="input-ref-code" placeholder="Enter Invite Code" class="flex-1 text-black p-2 text-sm rounded">
-                    <button onclick="submitReferral()" class="bg-yellow-400 text-black px-4 py-2 rounded text-sm font-bold">Apply</button>
-                </div>
-                <div class="mt-3 flex justify-between text-xs border-t border-white/20 pt-2">                    <span>Invites: <span id="total-invites">0</span></span>
-                    <span>Ref. Earned: <span id="total-ref-earned">0.00</span> PHP</span>
-                </div>
-            </div>
+        <!-- Post Link -->
+        <div class="bg-white rounded-3xl p-5 border border-slate-200 mb-8 shadow-sm">
+            <h3 class="font-bold text-slate-800 mb-3 flex justify-between">
+                Post Video <span id="post-status" class="text-[10px] text-green-500 bg-green-50 px-2 py-1 rounded">FREE</span>
+            </h3>
+            <input type="text" id="yt-url" placeholder="Paste YouTube link here..." class="w-full bg-slate-100 p-3 rounded-2xl text-sm mb-3 focus:ring-2 ring-blue-500 outline-none">
+            <button onclick="postLink()" id="post-btn" class="w-full bg-slate-900 text-white py-3 rounded-2xl font-bold hover:bg-blue-600 transition duration-300">
+                Post for 100 Views
+            </button>
+        </div>
 
-            <!-- Add Video Section -->
-            <div class="bg-white p-4 rounded-xl shadow-sm mb-6 border-l-4 border-green-500">
-                <h3 class="font-bold text-sm mb-2">Promote Your Video</h3>
-                <input type="text" id="yt-url" placeholder="Paste YouTube Link" class="w-full border p-2 rounded text-sm mb-2">
-                <button onclick="postLink()" id="post-btn" class="w-full bg-green-500 text-white py-2 rounded text-sm font-bold">
-                    Post Free (100 Views)
-                </button>
-                <p class="text-[10px] text-gray-500 mt-1">*First 5 links free. Next: 5 PHP for 550 views.</p>
-            </div>
-
-            <!-- Video Queue -->
-            <h3 class="font-bold text-gray-700 mb-3">Videos to Watch (0.01 PHP each)</h3>
-            <div id="video-list" class="space-y-3">
-                <!-- Links injected here -->
-                <div class="animate-pulse text-center py-10 text-gray-400">Loading ads...</div>
-            </div>
+        <!-- Watch Queue -->
+        <h3 class="font-black text-lg text-slate-800 mb-4 px-1">Ads for You</h3>
+        <div id="video-list" class="space-y-4">
+            <!-- Dynamic Items -->
         </div>
     </main>
 
-    <!-- Video Watch Overlay -->
-    <div id="video-overlay" class="fixed inset-0 z-[100] flex flex-col items-center justify-center p-4">
-        <div class="text-white mb-4 text-center">
-            <p class="text-lg font-bold">Watch for <span id="timer">30</span>s to earn</p>
-            <p class="text-xs opacity-75">Don't close the video</p>
+    <!-- Fullscreen Video Player -->
+    <div id="video-overlay" class="flex flex-col items-center justify-center">
+        <div class="w-full max-w-sm px-6">
+            <div class="flex justify-between items-center mb-6 text-white">
+                <div>
+                    <h2 class="text-2xl font-black">Watching Ad</h2>
+                    <p class="text-sm opacity-60">Reward: 0.01 PHP</p>
+                </div>
+                <div class="bg-white/10 p-4 rounded-full border border-white/20">
+                    <span id="timer" class="text-3xl font-mono font-bold">30</span>
+                </div>
+            </div>
+            
+            <div class="w-full aspect-video bg-black rounded-3xl overflow-hidden shadow-2xl ring-4 ring-white/10">
+                <div id="yt-player-container"></div>
+            </div>
+
+            <p class="text-white/40 text-[10px] text-center mt-6">Do not close or reward will not be credited</p>
+            <button onclick="closePlayer()" class="w-full mt-4 text-white/60 text-sm underline">Cancel & Close</button>
         </div>
-        <div id="player-container" class="w-full aspect-video bg-black rounded-lg overflow-hidden">
-            <div id="yt-player"></div>
-        </div>
-        <button onclick="closePlayer()" class="mt-6 text-gray-400 underline">Cancel</button>
     </div>
 
-    <!-- Firebase SDKs -->
     <script type="module" src="app.js"></script>
 </body>
 </html>
