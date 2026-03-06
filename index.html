@@ -3,103 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FreeGcashads - Mega Update</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <title>FreeGcashAds - Watch & Earn</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.youtube.com/iframe_api"></script>
-    <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
-    <script src='//libtl.com/sdk.js' data-zone='10555663' data-sdk='show_10555663'></script>
     <style>
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .active-tab { border-bottom: 3px solid #ef4444; color: #ef4444; }
-        .cat-active { background: #ef4444 !important; color: white !important; }
+        .hidden-section { display: none; }
+        #video-overlay { display: none; background: rgba(0,0,0,0.9); }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen font-sans">
+<body class="bg-gray-100 min-h-screen pb-20">
 
-    <!-- Top Header -->
-    <nav class="bg-slate-900 border-b border-slate-800 p-4 sticky top-0 z-50">
-        <div class="max-w-xl mx-auto flex justify-between items-center">
-            <div>
-                <h1 class="text-xl font-black text-red-500 italic">FREEGCASH<span class="text-white">ADS</span></h1>
-                <p id="tgName" class="text-blue-400 text-[10px] font-bold">@fetching...</p>
-            </div>
-            <div class="flex items-center gap-3">
-                <a href="https://www.paypal.com/paypalme/isaiotico/5" target="_blank" class="text-[10px] bg-yellow-600 px-2 py-1 rounded font-bold">☕ Coffee</a>
-                <div class="bg-black px-3 py-1 rounded-lg border border-slate-700">
-                    <p class="text-[8px] text-slate-500 font-bold uppercase">Wallet</p>
-                    <p class="text-green-400 font-mono font-black text-sm">₱<span id="userBalance">0.00</span></p>
-                </div>
+    <!-- Auth / Profile Header -->
+    <nav class="bg-blue-600 text-white p-4 shadow-lg sticky top-0 z-50">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="font-bold text-xl">FreeGcashAds</h1>
+            <div id="user-stats" class="text-right">
+                <p id="display-username" class="text-sm font-mono">@loading...</p>
+                <p class="text-xs">Balance: <span id="balance" class="font-bold text-yellow-300">0.00</span> PHP</p>
             </div>
         </div>
     </nav>
 
-    <!-- Social Section -->
-    <div class="bg-slate-900/50 p-2 flex justify-center gap-4 border-b border-slate-800 overflow-x-auto no-scrollbar">
-        <a href="https://t.me/paperhouseinc" class="text-[10px] bg-blue-600/20 text-blue-400 px-3 py-1 rounded-full border border-blue-500/30 whitespace-nowrap">Join Telegram Page</a>
-        <a href="https://t.me/paperhouseinc" class="text-[10px] bg-blue-600/20 text-blue-400 px-3 py-1 rounded-full border border-blue-500/30 whitespace-nowrap">Telegram Group</a>        <a href="https://www.facebook.com/profile.php?id=61586281245735" class="text-[10px] bg-blue-800/20 text-blue-500 px-3 py-1 rounded-full border border-blue-700/30 whitespace-nowrap">Facebook Page</a>
-    </div>
-
-    <!-- Main Navigation -->
-    <div class="flex max-w-xl mx-auto border-b border-slate-800">
-        <button id="navTasks" class="flex-1 py-3 font-black text-sm active-tab">TASKS</button>
-        <button id="navProfile" class="flex-1 py-3 font-black text-sm text-slate-500">MY LINKS</button>
-    </div>
-
-    <main id="taskView" class="max-w-xl mx-auto p-4 space-y-6">
-        <!-- Category Selector -->
-        <div class="overflow-x-auto no-scrollbar flex gap-2 pb-2">
-            <button onclick="switchCat('yt_watch')" class="cat-btn cat-active bg-slate-800 px-4 py-2 rounded-xl text-[10px] font-bold whitespace-nowrap">YT Watch</button>
-            <button onclick="switchCat('yt_sub')" class="cat-btn bg-slate-800 px-4 py-2 rounded-xl text-[10px] font-bold whitespace-nowrap">YT Sub</button>
-            <button onclick="switchCat('yt_like')" class="cat-btn bg-slate-800 px-4 py-2 rounded-xl text-[10px] font-bold whitespace-nowrap">YT Like</button>
-            <button onclick="switchCat('fb_follow')" class="cat-btn bg-slate-800 px-4 py-2 rounded-xl text-[10px] font-bold whitespace-nowrap">FB Follow</button>
-            <button onclick="switchCat('web_visit')" class="cat-btn bg-slate-800 px-4 py-2 rounded-xl text-[10px] font-bold whitespace-nowrap">Visit Site</button>
-            <button onclick="switchCat('playstore')" class="cat-btn bg-slate-800 px-4 py-2 rounded-xl text-[10px] font-bold whitespace-nowrap">Playstore</button>
-            <button onclick="adminLogin()" class="bg-purple-900/40 px-4 py-2 rounded-xl text-[10px] font-bold whitespace-nowrap border border-purple-500/30">Admin</button>
+    <!-- Main Content -->
+    <main class="container mx-auto p-4 max-w-md">
+        
+        <!-- Registration Modal (Simplified for Telegram) -->
+        <div id="auth-box" class="bg-white p-6 rounded-xl shadow-md mb-6 hidden-section">
+            <h2 class="text-xl font-bold mb-4">Enter Telegram Username</h2>
+            <input type="text" id="tg-input" placeholder="@username" class="w-full border p-2 rounded mb-4">
+            <button onclick="register()" class="w-full bg-blue-500 text-white py-2 rounded font-bold">Start Earning</button>
         </div>
 
-        <!-- Add Link Card -->
-        <section class="bg-slate-900 p-5 rounded-3xl border border-slate-800">
-            <h2 id="catTitle" class="text-sm font-black text-slate-400 mb-4 uppercase tracking-tighter">Add Youtube Link</h2>
-            <input id="urlInput" type="text" placeholder="Paste link here..."                 class="w-full bg-slate-950 border border-slate-700 p-4 rounded-2xl mb-4 text-sm focus:ring-2 focus:ring-red-500 outline-none transition-all">
-            <button id="addBtn" class="w-full bg-white text-black font-black py-4 rounded-2xl active:scale-95 transition-all text-sm uppercase">Add to Queue</button>
-            <p id="limitText" class="text-center text-[10px] mt-3 text-slate-500 font-bold"></p>
-        </section>
+        <!-- Dashboard -->
+        <div id="main-dashboard">
+            <!-- Referral Box -->
+            <div class="bg-gradient-to-r from-purple-500 to-indigo-600 text-white p-4 rounded-xl mb-6 shadow-md">
+                <h3 class="font-bold mb-2">Invite & Earn 20%</h3>
+                <p class="text-xs mb-3">Your Code: <span id="my-ref-code" class="font-mono bg-white text-indigo-600 px-2 py-1 rounded">...</span></p>
+                <div class="flex gap-2">
+                    <input type="text" id="input-ref-code" placeholder="Enter Invite Code" class="flex-1 text-black p-2 text-sm rounded">
+                    <button onclick="submitReferral()" class="bg-yellow-400 text-black px-4 py-2 rounded text-sm font-bold">Apply</button>
+                </div>
+                <div class="mt-3 flex justify-between text-xs border-t border-white/20 pt-2">                    <span>Invites: <span id="total-invites">0</span></span>
+                    <span>Ref. Earned: <span id="total-ref-earned">0.00</span> PHP</span>
+                </div>
+            </div>
 
-        <!-- Queue -->
-        <div id="queueList" class="space-y-3 pb-20">
-            <!-- Items Injected -->
+            <!-- Add Video Section -->
+            <div class="bg-white p-4 rounded-xl shadow-sm mb-6 border-l-4 border-green-500">
+                <h3 class="font-bold text-sm mb-2">Promote Your Video</h3>
+                <input type="text" id="yt-url" placeholder="Paste YouTube Link" class="w-full border p-2 rounded text-sm mb-2">
+                <button onclick="postLink()" id="post-btn" class="w-full bg-green-500 text-white py-2 rounded text-sm font-bold">
+                    Post Free (100 Views)
+                </button>
+                <p class="text-[10px] text-gray-500 mt-1">*First 5 links free. Next: 5 PHP for 550 views.</p>
+            </div>
+
+            <!-- Video Queue -->
+            <h3 class="font-bold text-gray-700 mb-3">Videos to Watch (0.01 PHP each)</h3>
+            <div id="video-list" class="space-y-3">
+                <!-- Links injected here -->
+                <div class="animate-pulse text-center py-10 text-gray-400">Loading ads...</div>
+            </div>
         </div>
     </main>
 
-    <!-- Profile View -->
-    <main id="profileView" class="max-w-xl mx-auto p-4 hidden space-y-4">
-        <h2 class="font-black text-xl italic">My Promotions</h2>
-        <div id="myLinksList" class="space-y-3">
-            <!-- User's own links appear here -->
+    <!-- Video Watch Overlay -->
+    <div id="video-overlay" class="fixed inset-0 z-[100] flex flex-col items-center justify-center p-4">
+        <div class="text-white mb-4 text-center">
+            <p class="text-lg font-bold">Watch for <span id="timer">30</span>s to earn</p>
+            <p class="text-xs opacity-75">Don't close the video</p>
         </div>
-    </main>
-
-    <!-- Action Modal -->
-    <div id="actionModal" class="fixed inset-0 bg-black z-[100] hidden flex flex-col">
-        <div class="p-4 flex justify-between items-center bg-slate-900 border-b border-slate-800">
-            <div id="timer" class="text-4xl font-black text-red-500">30</div>
-            <div class="text-right">
-                <p id="actionType" class="text-[10px] font-black uppercase text-slate-500">Task in progress</p>
-                <p id="rewardValue" class="text-xs text-green-500 font-bold">Earn ₱0.01</p>
-            </div>
+        <div id="player-container" class="w-full aspect-video bg-black rounded-lg overflow-hidden">
+            <div id="yt-player"></div>
         </div>
-        <div class="flex-grow flex items-center justify-center relative">
-            <div id="ytContainer" class="w-full aspect-video hidden">
-                <div id="player"></div>
-            </div>
-            <div id="otherContainer" class="text-center p-10">
-                <p class="text-xl font-bold mb-2">Keep this window open!</p>
-                <p class="text-sm text-slate-500 italic">Redirecting and rewarding in 30 seconds...</p>
-            </div>
-        </div>
+        <button onclick="closePlayer()" class="mt-6 text-gray-400 underline">Cancel</button>
     </div>
 
+    <!-- Firebase SDKs -->
     <script type="module" src="app.js"></script>
 </body>
 </html>
