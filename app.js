@@ -20,7 +20,7 @@ tg.expand();
 // Configuration
 const CONFIG = {
     yt_watch:   { label: "YT Watch", reward: 0.01, time: 30, free: 100, paid: 550, cost: 5, field: 'u_yt_w' },
-    yt_sub:     { label: "YT Subscribe", reward: 0.03, time: 30, free: 50,  paid: 65,  cost: 7, field: 'u_yt_s' },
+    yt_sub:     { label: "YT Subscribe", reward: 0.03, time: 30, free: 50,  paid: 260,  cost: 5, field: 'u_yt_s' },
     yt_like:    { label: "YT Like", reward: 0.01, time: 30, free: 100, paid: 550, cost: 5, field: 'u_yt_l' },
     yt_comment: { label: "YT Comment", reward: 0.01, time: 30, free: 100, paid: 550, cost: 5, field: 'u_yt_c' },
     fb_follow:  { label: "FB Follow", reward: 0.01, time: 30, free: 100, paid: 550, cost: 5, field: 'u_fb_f' },
@@ -220,7 +220,7 @@ document.getElementById('addBtn').onclick = async () => {
     let cost = (used < 5) ? 0 : c.cost;
     let limit = (used < 5) ? c.free : c.paid;
 
-    if (userData.balance < cost) return alert("Insufficient Balance");
+    if (userData.balance < cost) return alert("Insufficient Balance,Earn 5 Pesos to Get the link!");
 
     const data = {
         owner: user.username,
