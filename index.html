@@ -1,83 +1,105 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>Retro Pixel Racer — Mini</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <style>
-    body { font-family: Arial, sans-serif; margin: 12px; background: #111; color: #eee; }
-    #ui { display:flex; gap:12px; align-items:center; margin-bottom:8px; flex-wrap:wrap; }
-    #info { flex:1; min-width:220px; }
-    #canvasWrap{ background:#222; padding:8px; border-radius:6px; display:inline-block; }
-    canvas { background: linear-gradient(#2b2b2b,#1a1a1a); display:block; border-radius:4px; }
-    .btn { padding:8px 12px; border-radius:6px; background:#0a84ff; color:white; border:0; cursor:pointer; }
-    .btn.secondary { background:#444; }
-    .controls { display:flex; gap:8px; margin-top:8px; }
-    #adminPanel { background:#161616; padding:8px; border-radius:6px; margin-top:8px; display:none; }
-    input, select { padding:6px; border-radius:6px; border:1px solid #333; background:#222; color:#eee; }
-    .small { font-size:13px; color:#aaa; }
-    .pill { padding:6px 8px; background:#1a1a1a; border-radius:6px; display:inline-block; margin-right:6px; }
-    #withdrawList { max-height:220px; overflow:auto; margin-top:8px; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FreeGcashads - Mega Update</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
+    <script src='//libtl.com/sdk.js' data-zone='10555663' data-sdk='show_10555663'></script>
+    <style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .active-tab { border-bottom: 3px solid #ef4444; color: #ef4444; }
+        .cat-active { background: #ef4444 !important; color: white !important; }
+    </style>
 </head>
-<body>
-  <div id="ui">
-    <div id="info">
-      <div><span class="pill">User: <strong id="username">—</strong></span>
-      <span class="pill">Score: <strong id="score">0</strong></span>
-      <span class="pill">Dodged: <strong id="dodged">0</strong></span>
-      <span class="pill">Balance (PHP): <strong id="balance">0</strong></span>
-      </div>
-      <div class="small">Every 1000 barriers = 1 peso</div>
-    </div>
-    <div>
-      <button id="startBtn" class="btn">Start</button>
-      <button id="withdrawBtn" class="btn secondary">Withdraw</button>
-      <button id="adminBtn" class="btn secondary">Admin</button>
-    </div>
-  </div>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans">
 
-  <div id="canvasWrap">
-    <canvas id="game" width="360" height="640"></canvas>
-    <div class="controls">
-      <button id="leftBtn" class="btn secondary">◀ LEFT</button>
-      <button id="rightBtn" class="btn secondary">RIGHT ▶</button>
-    </div>
-  </div>
-
-  <div id="adminPanel">
-    <div style="display:flex; gap:8px; align-items:center;">
-      <label class="small">Admin password:</label>
-      <input id="adminPassword" placeholder="password" />
-      <button id="adminLogin" class="btn">Login</button>
-      <button id="adminLogout" class="btn secondary">Logout</button>
-    </div>
-    <div id="withdrawList"></div>
-  </div>
-    <!-- Popunder Card HTML Structure -->
-    <div id="popunderCard" class="popunder-card">
-        <button class="close-btn" id="closePopunderCard">&times;</button>
-        <h3>Sponsored Content</h3>
-        <div class="ad-slot" id="adSlot1">
-            <!-- This slot will host the 'atOptions' banner ad -->
+    <!-- Top Header -->
+    <nav class="bg-slate-900 border-b border-slate-800 p-4 sticky top-0 z-50">
+        <div class="max-w-xl mx-auto flex justify-between items-center">
+            <div>
+                <h1 class="text-xl font-black text-red-500 italic">FREEGCASH<span class="text-white">ADS</span></h1>
+                <p id="tgName" class="text-blue-400 text-[10px] font-bold">@fetching...</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <a href="https://www.paypal.com/paypalme/isaiotico/5" target="_blank" class="text-[10px] bg-yellow-600 px-2 py-1 rounded font-bold">☕ Coffee</a>
+                <div class="bg-black px-3 py-1 rounded-lg border border-slate-700">
+                    <p class="text-[8px] text-slate-500 font-bold uppercase">Wallet</p>
+                    <p class="text-green-400 font-mono font-black text-sm">₱<span id="userBalance">0.00</span></p>
+                </div>
+            </div>
         </div>
-        <div class="ad-slot" id="adSlot2">
-            <!-- You can put other banner ad code here if you have it -->
-            <p>Ad Banner 2 (Other Ad Network)</p>
-        </div>
-        <div class="ad-slot" id="adSlot3">
-            <!-- You can put other banner ad code here if you have it -->
-            <p>Ad Banner 3 (Other Ad Network)</p>
-        </div>
-        <div class="cooldown-message" id="cooldownMessage"></div>
+    </nav>
+
+    <!-- Social Section -->
+    <div class="bg-slate-900/50 p-2 flex justify-center gap-4 border-b border-slate-800 overflow-x-auto no-scrollbar">
+        <a href="https://t.me/paperhouseinc" class="text-[10px] bg-blue-600/20 text-blue-400 px-3 py-1 rounded-full border border-blue-500/30 whitespace-nowrap">Join Telegram Page</a>
+        <a href="https://t.me/paperhouseinc" class="text-[10px] bg-blue-600/20 text-blue-400 px-3 py-1 rounded-full border border-blue-500/30 whitespace-nowrap">Telegram Group</a>        <a href="https://www.facebook.com/profile.php?id=61586281245735" class="text-[10px] bg-blue-800/20 text-blue-500 px-3 py-1 rounded-full border border-blue-700/30 whitespace-nowrap">Facebook Page</a>
     </div>
 
+    <!-- Main Navigation -->
+    <div class="flex max-w-xl mx-auto border-b border-slate-800">
+        <button id="navTasks" class="flex-1 py-3 font-black text-sm active-tab">TASKS</button>
+        <button id="navProfile" class="flex-1 py-3 font-black text-sm text-slate-500">MY LINKS</button>
+    </div>
 
-  <!-- Firebase compat libs (quick prototype) -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <main id="taskView" class="max-w-xl mx-auto p-4 space-y-6">
+        <!-- Category Selector -->
+        <div class="overflow-x-auto no-scrollbar flex gap-2 pb-2">
+            <button onclick="switchCat('yt_watch')" class="cat-btn cat-active bg-slate-800 px-4 py-2 rounded-xl text-[10px] font-bold whitespace-nowrap">YT Watch</button>
+            <button onclick="switchCat('yt_sub')" class="cat-btn bg-slate-800 px-4 py-2 rounded-xl text-[10px] font-bold whitespace-nowrap">YT Sub</button>
+            <button onclick="switchCat('yt_like')" class="cat-btn bg-slate-800 px-4 py-2 rounded-xl text-[10px] font-bold whitespace-nowrap">YT Like</button>
+            <button onclick="switchCat('fb_follow')" class="cat-btn bg-slate-800 px-4 py-2 rounded-xl text-[10px] font-bold whitespace-nowrap">FB Follow</button>
+            <button onclick="switchCat('web_visit')" class="cat-btn bg-slate-800 px-4 py-2 rounded-xl text-[10px] font-bold whitespace-nowrap">Visit Site</button>
+            <button onclick="switchCat('playstore')" class="cat-btn bg-slate-800 px-4 py-2 rounded-xl text-[10px] font-bold whitespace-nowrap">Playstore</button>
+            <button onclick="adminLogin()" class="bg-purple-900/40 px-4 py-2 rounded-xl text-[10px] font-bold whitespace-nowrap border border-purple-500/30">Admin</button>
+        </div>
 
-  <script src="app.js"></script>
+        <!-- Add Link Card -->
+        <section class="bg-slate-900 p-5 rounded-3xl border border-slate-800">
+            <h2 id="catTitle" class="text-sm font-black text-slate-400 mb-4 uppercase tracking-tighter">Add Youtube Link</h2>
+            <input id="urlInput" type="text" placeholder="Paste link here..."                 class="w-full bg-slate-950 border border-slate-700 p-4 rounded-2xl mb-4 text-sm focus:ring-2 focus:ring-red-500 outline-none transition-all">
+            <button id="addBtn" class="w-full bg-white text-black font-black py-4 rounded-2xl active:scale-95 transition-all text-sm uppercase">Add to Queue</button>
+            <p id="limitText" class="text-center text-[10px] mt-3 text-slate-500 font-bold"></p>
+        </section>
+
+        <!-- Queue -->
+        <div id="queueList" class="space-y-3 pb-20">
+            <!-- Items Injected -->
+        </div>
+    </main>
+
+    <!-- Profile View -->
+    <main id="profileView" class="max-w-xl mx-auto p-4 hidden space-y-4">
+        <h2 class="font-black text-xl italic">My Promotions</h2>
+        <div id="myLinksList" class="space-y-3">
+            <!-- User's own links appear here -->
+        </div>
+    </main>
+
+    <!-- Action Modal -->
+    <div id="actionModal" class="fixed inset-0 bg-black z-[100] hidden flex flex-col">
+        <div class="p-4 flex justify-between items-center bg-slate-900 border-b border-slate-800">
+            <div id="timer" class="text-4xl font-black text-red-500">30</div>
+            <div class="text-right">
+                <p id="actionType" class="text-[10px] font-black uppercase text-slate-500">Task in progress</p>
+                <p id="rewardValue" class="text-xs text-green-500 font-bold">Earn ₱0.01</p>
+            </div>
+        </div>
+        <div class="flex-grow flex items-center justify-center relative">
+            <div id="ytContainer" class="w-full aspect-video hidden">
+                <div id="player"></div>
+            </div>
+            <div id="otherContainer" class="text-center p-10">
+                <p class="text-xl font-bold mb-2">Keep this window open!</p>
+                <p class="text-sm text-slate-500 italic">Redirecting and rewarding in 30 seconds...</p>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="app.js"></script>
 </body>
 </html>
