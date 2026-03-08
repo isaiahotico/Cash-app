@@ -3,88 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PAPERHOUSE | Earn & Promote</title>
+    <title>PAPERHOUSE INC</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
     <style>
-        .timer-glow { box-shadow: 0 0 15px rgba(59, 130, 246, 0.5); }
-        .card-hover:hover { transform: translateY(-2px); transition: all 0.2s; }
+        .hidden { display: none; }
+        .active-tab { border-bottom: 4px solid #facc15; color: #facc15; }
     </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
+<body class="bg-gray-900 text-white min-h-screen pb-20">
 
-    <!-- Auth Overlay -->
-    <div id="auth-overlay" class="fixed inset-0 bg-slate-900 z-50 flex items-center justify-center p-4">
-        <div class="bg-slate-800 p-8 rounded-2xl border border-slate-700 w-full max-w-md shadow-2xl">
-            <h1 class="text-3xl font-bold text-blue-500 mb-2">PAPERHOUSE</h1>
-            <p class="text-slate-400 mb-6">Enter your Telegram username to start earning.</p>
-            <input type="text" id="tg-username" placeholder="@username" class="w-full bg-slate-700 border border-slate-600 rounded-lg p-3 mb-4 focus:ring-2 focus:ring-blue-500 outline-none">
-            <button onclick="login()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition">Enter Dashboard</button>
-        </div>
-    </div>
-
-    <!-- Main Navigation -->
-    <nav class="bg-slate-800 border-b border-slate-700 sticky top-0 z-40">
-        <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-            <div class="flex items-center gap-2">
-                <span class="text-2xl font-black text-blue-500 tracking-tighter">PAPERHOUSE</span>
-            </div>
-            <div class="flex items-center gap-4">
-                <div class="text-right">
-                    <p id="display-username" class="text-xs text-slate-400 font-mono"></p>
-                    <p class="font-bold text-green-400">₱<span id="display-balance">0.00</span></p>
-                </div>
-                <div class="h-10 w-10 bg-blue-600 rounded-full flex items-center justify-center font-bold">
-                    <i class="fa-brands fa-telegram"></i>
-                </div>
+    <!-- Header / Profile Section -->
+    <header class="bg-gray-800 p-4 sticky top-0 z-50 shadow-xl border-b border-yellow-500">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-yellow-500">PAPERHOUSE INC</h1>
+            <div id="profile-area" class="text-right">
+                <p id="display-username" class="text-sm font-mono text-blue-400">@loading...</p>
+                <p class="text-xl font-bold">₱ <span id="user-balance">0.00</span></p>
             </div>
         </div>
+    </header>
+
+    <!-- Tabs -->
+    <nav class="flex justify-around bg-gray-800 border-b border-gray-700">
+        <button onclick="switchTab('earn')" id="tab-earn" class="py-3 px-6 active-tab uppercase font-bold tracking-widest">Earn</button>
+        <button onclick="switchTab('promote')" id="tab-promote" class="py-3 px-6 uppercase font-bold tracking-widest">Promote</button>
     </nav>
 
-    <main class="max-w-6xl mx-auto p-4 pb-24">
-        <!-- Add Link Section -->
-        <section class="mb-10 bg-slate-800 p-6 rounded-2xl border border-slate-700">            <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
-                <i class="fa-solid fa-plus-circle text-blue-500"></i> Promote Your Link
-            </h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <input type="url" id="link-url" placeholder="https://youtube.com/watch?v=..." class="bg-slate-700 border border-slate-600 rounded-lg p-3 outline-none focus:ring-1 focus:ring-blue-500">
-                <select id="link-type" class="bg-slate-700 border border-slate-600 rounded-lg p-3 outline-none">
-                    <option value="youtube">YouTube (Free for first 5)</option>
-                    <option value="facebook">Facebook (₱5.00)</option>
-                    <option value="website">Website (₱5.00)</option>
-                </select>
-                <button onclick="addLink()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg transition">
-                    Post Link
-                </button>
+    <!-- Main Content -->
+    <main class="container mx-auto p-4">
+        
+        <!-- Earn Section -->
+        <section id="section-earn" class="space-y-6">
+            <div>
+                <h2 class="text-lg font-semibold mb-3 border-l-4 border-red-500 pl-2">YouTube Watch (₱0.01)</h2>
+                <div id="list-yt-watch" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
             </div>
-            <p class="text-xs text-slate-500 mt-2 italic">* YouTube links are free for your first 5 posts (100 views). Others cost ₱5.00 (550 views).</p>
+            <div>
+                <h2 class="text-lg font-semibold mb-3 border-l-4 border-red-600 pl-2">YouTube Subscribe (₱0.03)</h2>
+                <div id="list-yt-sub" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+            </div>
+            <div>
+                <h2 class="text-lg font-semibold mb-3 border-l-4 border-blue-500 pl-2">Facebook Follow (₱0.01)</h2>
+                <div id="list-fb-follow" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+            </div>
+            <div>                <h2 class="text-lg font-semibold mb-3 border-l-4 border-green-500 pl-2">Visit Website (₱0.01)</h2>
+                <div id="list-web-visit" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+            </div>
         </section>
 
-        <!-- Active Queue -->
-        <div class="flex justify-between items-end mb-6">
-            <h2 class="text-2xl font-bold">Active Tasks</h2>
-            <span class="text-sm text-slate-400">Reward per click: <span class="text-green-400 font-bold">₱0.01</span></span>
-        </div>
-
-        <div id="links-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <!-- Links will be injected here -->
-            <div class="animate-pulse bg-slate-800 h-32 rounded-xl"></div>
-            <div class="animate-pulse bg-slate-800 h-32 rounded-xl"></div>
-            <div class="animate-pulse bg-slate-800 h-32 rounded-xl"></div>
-        </div>
+        <!-- Promote Section -->
+        <section id="section-promote" class="hidden space-y-6">
+            <div class="bg-gray-800 p-6 rounded-xl border border-gray-700">
+                <h2 class="text-xl font-bold mb-4">Promote Your Link</h2>
+                <div class="space-y-4">
+                    <select id="promo-type" class="w-full bg-gray-700 p-3 rounded border border-gray-600">
+                        <option value="yt_watch">YouTube Video (Watch)</option>
+                        <option value="yt_sub">YouTube Channel (Subscribe)</option>
+                        <option value="fb_follow">Facebook Page (Follow)</option>
+                        <option value="web_visit">Website (Visit)</option>
+                    </select>
+                    <input type="url" id="promo-url" placeholder="https://..." class="w-full bg-gray-700 p-3 rounded border border-gray-600 text-white">
+                    <p id="promo-cost-info" class="text-sm text-yellow-400 font-bold italic">Checking link history...</p>
+                    <button onclick="submitLink()" class="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 rounded-lg transition">Submit & Pay</button>
+                </div>
+            </div>
+        </section>
     </main>
 
-    <!-- Task Overlay (Timer) -->
-    <div id="timer-overlay" class="fixed inset-0 bg-slate-900/95 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="text-center">
-            <div id="timer-circle" class="w-32 h-32 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
-            <h3 class="text-4xl font-black mb-2" id="countdown-number">45</h3>
-            <p class="text-slate-400">Watching link... Do not close this tab.</p>
-            <p id="current-task-url" class="text-xs text-blue-500 mt-4 truncate max-w-xs"></p>
-        </div>
+    <!-- Timer Overlay Modal -->
+    <div id="timer-modal" class="fixed inset-0 bg-black bg-opacity-95 hidden z-[100] flex flex-col items-center justify-center p-6 text-center">
+        <div id="timer-circle" class="w-32 h-32 rounded-full border-8 border-yellow-500 flex items-center justify-center text-4xl font-bold mb-6">45</div>
+        <h3 class="text-2xl font-bold mb-2">DO NOT CLOSE THE TAB</h3>
+        <p id="timer-instruction" class="text-gray-400">Keep the page open to receive reward.</p>
+        <button id="claim-btn" class="hidden mt-8 bg-green-500 px-10 py-3 rounded-full font-bold text-xl animate-bounce">CLAIM REWARD</button>
     </div>
 
-    <!-- Firebase SDKs -->
+    <!-- Firebase Scripts -->
     <script type="module" src="app.js"></script>
 </body>
 </html>
