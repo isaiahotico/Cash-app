@@ -5,141 +5,183 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PAPERHOUSE INC</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
     <!-- Ad SDKs -->
     <script src='//libtl.com/sdk.js' data-zone='10555663' data-sdk='show_10555663'></script>
     <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
     <style>
-        .hidden { display: none; }
-        .active-tab { border-bottom: 4px solid #facc15; color: #facc15; }
-        #timer-overlay { backdrop-filter: blur(10px); }
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@400;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background: #0f172a; }
+        .cyber-font { font-family: 'Orbitron', sans-serif; }
+        .tab-active { border-bottom: 3px solid #eab308; color: #eab308; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); }
     </style>
 </head>
-<body class="bg-slate-900 text-white min-h-screen">
+<body class="text-slate-200 min-h-screen">
 
     <!-- Header -->
-    <header class="bg-slate-800 p-4 border-b border-yellow-500 sticky top-0 z-40">
-        <div class="container mx-auto flex justify-between items-center">
-            <div>
-                <h1 class="text-xl font-black text-yellow-500">PAPERHOUSE INC</h1>
-                <p id="top-tg-user" class="text-blue-400 text-xs font-mono">@detecting...</p>
+    <header class="glass sticky top-0 z-50 border-b border-slate-700 p-4">
+        <div class="flex justify-between items-center max-w-2xl mx-auto">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center text-black font-bold text-xl">P</div>
+                <div>
+                    <h1 class="cyber-font font-bold text-yellow-500 tracking-tighter">PAPERHOUSE</h1>
+                    <p id="tg-username" class="text-xs text-blue-400 font-mono">@Detecting...</p>
+                </div>
             </div>
             <div class="text-right">
-                <p class="text-2xl font-bold text-green-400">₱<span id="user-balance">0.00</span></p>
-                <p class="text-[10px] text-gray-400">Invites: <span id="invite-count">0</span> | Earned: ₱<span id="total-earned">0.00</span></p>
+                <p class="text-2xl font-black text-green-400">₱<span id="user-balance">0.00</span></p>
+                <div class="flex gap-2 text-[10px] text-slate-400 justify-end">
+                    <span>Invites: <b id="inv-count" class="text-white">0</b></span>
+                    <span>Earned: <b id="total-earned" class="text-white">0</b></span>
+                </div>
             </div>
         </div>
     </header>
 
     <!-- Navigation -->
-    <nav class="flex overflow-x-auto bg-slate-800 border-b border-slate-700 no-scrollbar">
-        <button onclick="switchTab('earn')" id="tab-earn" class="flex-1 py-3 px-4 active-tab font-bold text-xs uppercase">Earn</button>
-        <button onclick="switchTab('promote')" id="tab-promote" class="flex-1 py-3 px-4 font-bold text-xs uppercase">Promote</button>
-        <button onclick="switchTab('refer')" id="tab-refer" class="flex-1 py-3 px-4 font-bold text-xs uppercase">Refer</button>
-        <button onclick="switchTab('admin')" id="tab-admin" class="flex-1 py-3 px-4 font-bold text-xs uppercase">Admin</button>
-        <button onclick="switchTab('coffee')" id="tab-coffee" class="flex-1 py-3 px-4 font-bold text-xs uppercase text-orange-400">Coffee</button>
+    <nav class="flex overflow-x-auto no-scrollbar glass border-b border-slate-800 sticky top-[73px] z-40">
+
+        <button onclick="switchTab('earn')" id="t-earn" class="flex-1 py-3 px-6 text-xs font-bold uppercase whitespace-nowrap tab-active">Earn</button>
+        <button onclick="switchTab('post')" id="t-post" class="flex-1 py-3 px-6 text-xs font-bold uppercase whitespace-nowrap">Promote</button>
+        <button onclick="switchTab('refer')" id="t-refer" class="flex-1 py-3 px-6 text-xs font-bold uppercase whitespace-nowrap">Referral</button>
+        <button onclick="switchTab('admin')" id="t-admin" class="flex-1 py-3 px-6 text-xs font-bold uppercase whitespace-nowrap">Admin</button>
+        <button onclick="switchTab('donate')" id="t-donate" class="flex-1 py-3 px-6 text-xs font-bold uppercase whitespace-nowrap text-orange-400"><i class="fas fa-coffee mr-1"></i>Coffee</button>
     </nav>
 
-    <main class="container mx-auto p-4 mb-20">
+    <main class="p-4 max-w-2xl mx-auto pb-24">
         
         <!-- EARN SECTION -->
-        <section id="section-earn" class="space-y-6">
-            <div class="category">
+        <div id="view-earn" class="space-y-6">
+            <div class="category-group">
+                <h3 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                    <i class="fab fa-youtube text-red-500"></i> YouTube Watch (₱0.01)
+                </h3>
+                <div id="list-yt_watch" class="grid gap-3"></div>
+            </div>
+            <div class="category-group">
+                <h3 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                    <i class="fas fa-user-plus text-red-600"></i> YouTube Sub (₱0.03)
+                </h3>
+                <div id="list-yt_sub" class="grid gap-3"></div>
+            </div>
+            <div class="category-group">
+                <h3 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                    <i class="fab fa-facebook text-blue-500"></i> Facebook Follow (₱0.01)
+                </h3>
+                <div id="list-fb_follow" class="grid gap-3"></div>
+            </div>
+            <div class="category-group">
+                <h3 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                    <i class="fas fa-globe text-green-500"></i> Website Visit (₱0.01)
+                </h3>
+                <div id="list-web_visit" class="grid gap-3"></div>
+            </div>
+            <div class="category-group">
+                <h3 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                    <i class="fab fa-google-play text-purple-500"></i> PlayStore (₱0.01)
+                </h3>
+                <div id="list-playstore" class="grid gap-3"></div>
+            </div>
+            <div class="category-group">
+                <h3 class="text-xs font-black text-yellow-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                    <i class="fas fa-star"></i> Featured Links (₱0.03)
+                </h3>
+                <div id="list-admin_links" class="grid gap-3"></div>
+            </div>
+        </div>
 
-                <h2 class="text-sm font-bold text-red-500 mb-2 uppercase tracking-tighter">YouTube Watch (₱0.01)</h2>
-                <div id="list-yt_watch" class="grid gap-2"></div>
-            </div>
-            <div class="category">
-                <h2 class="text-sm font-bold text-red-600 mb-2 uppercase tracking-tighter">YouTube Subscribe (₱0.03)</h2>
-                <div id="list-yt_sub" class="grid gap-2"></div>
-            </div>
-            <div class="category">
-                <h2 class="text-sm font-bold text-blue-500 mb-2 uppercase tracking-tighter">Facebook Follow (₱0.01)</h2>
-                <div id="list-fb_follow" class="grid gap-2"></div>
-            </div>
-            <div class="category">
-                <h2 class="text-sm font-bold text-green-500 mb-2 uppercase tracking-tighter">Website Visit (₱0.01)</h2>
-                <div id="list-web_visit" class="grid gap-2"></div>
-            </div>
-            <div class="category">
-                <h2 class="text-sm font-bold text-purple-500 mb-2 uppercase tracking-tighter">PlayStore Visit (₱0.01)</h2>
-                <div id="list-playstore" class="grid gap-2"></div>
-            </div>
-            <div class="category">
-                <h2 class="text-sm font-bold text-yellow-500 mb-2 uppercase tracking-tighter">Admin Promotions (₱0.03)</h2>
-                <div id="list-admin_link" class="grid gap-2"></div>
-            </div>
-        </section>
+        <!-- POST SECTION -->
+        <div id="view-post" class="hidden space-y-4">
+            <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700">
+                <h2 class="text-xl font-bold mb-4">Create Campaign</h2>
+                <div class="space-y-4">
+                    <select id="p-type" onchange="updatePostInfo()" class="w-full bg-slate-900 p-4 rounded-xl border border-slate-700 focus:outline-none focus:border-yellow-500">
+                        <option value="yt_watch">YouTube Video (Watch 45s)</option>
+                        <option value="yt_sub">YouTube Channel (Subs
 
-        <!-- PROMOTE SECTION -->
-        <section id="section-promote" class="hidden space-y-4">
-            <div class="bg-slate-800 p-4 rounded-lg border border-slate-700">
-                <h3 class="font-bold mb-3">Add Promotion Link</h3>
-                <select id="promo-type" class="w-full bg-slate-900 border border-slate-700 p-3 rounded mb-3">
-                    <option value="yt_watch">YouTube Watch (Free 5/Paid ₱1)</option>
-                    <option value="yt_sub">YouTube Subscribe (Free 5/Paid ₱1)</option>
-                    <option value="fb_follow">Facebook Follow (Free 5/Paid ₱1)</option>
-                    <option value="web_visit">Website Visit (Free 5/Paid ₱1)</option>
-                    <option value="playstore">PlayStore Link (Free 5/Paid ₱1)</option>
-                </select>
-                <input type="url" id="promo-url" placeholder="https://..." class="w-full bg-slate-900 border border-slate-700 p-3 rounded mb-3">
-                <p id="promo-info" class="text-xs text-yellow-500 mb-3 italic font-bold"></p>
-                <button onclick="submitLink()" class="w-full bg-yellow-500 text-black font-black py-3 rounded">POST LINK</button>
-            </div>
-        </section>
-
-        <!-- REFERRAL SECTION -->
-        <section id="section-refer" class="hidden space-y-4">
-            <div class="bg-slate-800 p-6 rounded-lg text-center border-2 border-dashed border-slate-600">
-                <p class="text-gray-400 text-sm mb-2">Your Referral Code</p>
-                <h2 id="my-ref-code" class="text-3xl font-black tracking-widest text-yellow-500">LOADING...</h2>
-                <p class="text-[10px] mt-2 text-gray-500 uppercase">Earn 20% of every task your friend completes!</p>
-            </div>
-            <div class="bg-slate-800 p-4 rounded-lg">
-                <p class="text-sm mb-2">Have a Referral Code?</p>
-                <input type="text" id="input-ref" placeholder="Enter 12-letter code" class="w-full bg-slate-900 border border-slate-700 p-3 rounded uppercase">
-                <button onclick="applyReferral()" class="w-full mt-2 bg-blue-600 py-2 rounded font-bold">Submit Code</button>
-            </div>
-        </section>
-
-        <!-- ADMIN SECTION -->
-
-<section id="section-admin" class="hidden space-y-4">
-            <div id="admin-login">
-                <input type="password" id="admin-pass" placeholder="Admin Password" class="w-full bg-slate-900 border border-slate-700 p-3 rounded">
-                <button onclick="checkAdmin()" class="w-full mt-2 bg-red-600 py-2 rounded font-bold">Login</button>
-            </div>
-            <div id="admin-panel" class="hidden bg-red-900/20 p-4 border border-red-500 rounded">
-                <h3 class="font-bold text-red-500 mb-3 uppercase">Admin Link (10,000 Clicks)</h3>
-                <input type="url" id="admin-url" placeholder="https://..." class="w-full bg-slate-900 border border-slate-700 p-3 rounded mb-3">
-                <button onclick="submitAdminLink()" class="w-full bg-red-600 py-3 rounded font-bold">POST ADMIN LINK</button>
-            </div>
-        </section>
-
-        <!-- COFFEE SECTION -->
-        <section id="section-coffee" class="hidden space-y-4">
-            <div class="bg-orange-900/20 p-6 rounded-xl border border-orange-500 text-center">
-                <h2 class="text-xl font-bold mb-4">Support the Developer ☕</h2>
-                <div class="space-y-3 text-sm">
-                    <p class="bg-slate-800 p-3 rounded">GCash: <span class="text-yellow-500 font-bold">09952533453</span></p>
-                    <p class="bg-slate-800 p-3 rounded">PayPal: <span class="text-yellow-500 font-bold">otico.isai2@gmail.com</span></p>
-                    <p class="bg-slate-800 p-3 rounded">FaucetPay: <span class="text-yellow-500 font-bold">otico.isai2@gmail.com</span></p>
+cribe 45s)</option>
+                        <option value="fb_follow">Facebook Page (Follow 45s)</option>
+                        <option value="web_visit">Website Visit (45s)</option>
+                        <option value="playstore">PlayStore Link (40s)</option>
+                    </select>
+                    <input type="url" id="p-url" placeholder="Paste your link here..." class="w-full bg-slate-900 p-4 rounded-xl border border-slate-700">
+                    <div id="p-status" class="bg-blue-500/10 p-3 rounded-lg text-blue-400 text-xs font-bold border border-blue-500/20">
+                        Detecting link history...
+                    </div>
+                    <button onclick="handlePost()" class="w-full bg-yellow-500 text-black font-black py-4 rounded-xl shadow-lg shadow-yellow-500/20">PUBLISH LINK</button>
                 </div>
             </div>
-        </section>
+        </div>
+
+        <!-- REFERRAL SECTION -->
+        <div id="view-refer" class="hidden space-y-4 text-center">
+            <div class="bg-gradient-to-br from-indigo-600 to-purple-700 p-8 rounded-3xl shadow-xl">
+                <p class="text-indigo-100 text-sm mb-2">Share your code & earn 20%</p>
+                <h2 id="ref-code-display" class="text-4xl font-black tracking-[0.2em] uppercase">------</h2>
+            </div>
+            <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700">
+                <p class="text-sm text-slate-400 mb-3">Redeem Referral Code</p>
+                <input type="text" id="ref-input" placeholder="Paste 12-letter code" class="w-full bg-slate-900 p-4 rounded-xl border border-slate-700 text-center uppercase tracking-widest">
+                <button onclick="redeemRef()" class="w-full mt-3 bg-blue-600 py-3 rounded-xl font-bold">Apply Code</button>
+            </div>
+        </div>
+
+        <!-- ADMIN/COFFEE SECTIONS... -->
+        <div id="view-admin" class="hidden space-y-4">
+            <div id="admin-gate">
+                <input type="password" id="admin-pass" placeholder="Password" class="w-full bg-slate-800 p-4 rounded-xl border border-slate-700">
+                <button onclick="loginAdmin()" class="w-full mt-2 bg-red-600 py-3 rounded-xl font-bold">Access Admin</button>
+            </div>
+            <div id="admin-panel" class="hidden bg-red-900/10 p-5 rounded-2xl border border-red-500">
+                <h3 class="text-red-500 font-bold mb-4">POST 10,000 CLICK LINK</h3>
+                <input type="url" id="admin-url" placeholder="URL" class="w-full bg-slate-900 p-4 rounded-xl mb-3">
+                <button onclick="postAdminLink()" class="w-full bg-red-600 py-4 rounded-xl font-bold">POST TO FEATURED</button>
+            </div>
+        </div>
+
+        <div id="view-donate" class="hidden space-y-4">
+            <div class="bg-orange-500/10 border border-orange-500 p-8 rounded-3xl text-center">
+                <i class="fas fa-mug-hot text-5xl text-orange-500 mb-4"></i>
+                <h2 class="text-2xl font-black mb-6">Buy Admin Coffee</h2>
+                <div class="space-y-3">
+                    <div class="bg-slate-900 p-4 rounded-xl flex justify-between items-center">
+                        <span class="text-sm font-bold">GCash</span>
+                        <span class="text-yellow-500">09952533453</span>
+                    </div>
+                    <div class="bg-slate-900 p-4 rounded-xl flex justify-between items-center">
+                        <span class="text-sm font-bold">PayPal</span>
+                        <span class="text-yellow-500">otico.isai2@gmail.com</span>
+                    </div>
+                    <div class="bg-slate-900 p-4 rounded-xl flex justify-between items-center">
+
+<span class="text-sm font-bold">FaucetPay</span>
+                        <span class="text-yellow-500">otico.isai2@gmail.com</span>
+                    </div>
+                </div>
+            </div>
+        </div>
 
     </main>
 
-    <!-- TIMER MODAL -->
-    <div id="timer-overlay" class="fixed inset-0 bg-slate-950/95 z-[100] hidden flex flex-col items-center justify-center p-6 text-center">
-        <div id="countdown-circle" class="w-40 h-40 rounded-full border-8 border-yellow-500 flex items-center justify-center text-5xl font-black mb-8">45</div>
-        <h2 id="timer-status" class="text-2xl font-black text-yellow-500 uppercase">Wait for Reward</h2>
-        <p id="timer-msg" class="text-gray-400 mt-2">Returning to this tab will auto-pause and redirect.</p>
-        <button id="claim-reward-btn" class="hidden mt-10 bg-green-500 text-black px-12 py-4 rounded-full font-black text-xl animate-bounce">CLAIM REWARD</button>
+    <!-- TIMER SYSTEM -->
+    <div id="timer-modal" class="fixed inset-0 bg-slate-950/98 z-[100] hidden flex flex-col items-center justify-center p-8 text-center">
+        <div class="relative w-48 h-48 flex items-center justify-center mb-10">
+            <svg class="w-full h-full transform -rotate-90">
+                <circle cx="96" cy="96" r="80" stroke="currentColor" stroke-width="8" fill="transparent" class="text-slate-800" />
+                <circle id="timer-progress" cx="96" cy="96" r="80" stroke="currentColor" stroke-width="8" fill="transparent" class="text-yellow-500" stroke-dasharray="502" stroke-dashoffset="0" />
+            </svg>
+            <span id="timer-num" class="absolute text-6xl font-black cyber-font">45</span>
+        </div>
+        <h2 id="timer-title" class="text-2xl font-black uppercase text-yellow-500 tracking-widest">Active Task</h2>
+        <p id="timer-sub" class="text-slate-400 mt-2">Do not close this tab or content.</p>
+        <button id="claim-btn" class="hidden mt-10 bg-green-500 text-black px-16 py-5 rounded-full font-black text-xl animate-bounce shadow-xl shadow-green-500/40">CLAIM ₱<span id="reward-amt">0.00</span></button>
     </div>
 
-    <!-- Scripts -->
     <script type="module" src="app.js"></script>
 </body>
 </html>
