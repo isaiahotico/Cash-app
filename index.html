@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,133 +8,137 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Poppins', sans-serif; }
-        .bg-custom { background: linear-gradient(135deg, #0f172a 0%, #134e4a 100%); }
-        .shimmer-text {
-            color: #bef264;
-            text-shadow: 0 0 10px #84cc16, 0 0 20px #84cc16;
-            animation: pulse 2s infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
-        .glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        body { font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, #083344 0%, #064e3b 100%); min-height: 100vh; color: #f8fafc; }
+        .shimmer-text { color: #bef264; text-shadow: 0 0 12px #a3e635; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.8; } }
+        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
         .hidden { display: none; }
+        input, select { background: #0f172a !important; border: 1px solid #3f6212 !important; color: white !important; }
     </style>
     <!-- Ad Scripts -->
     <script src='//libtl.com/sdk.js' data-zone='10555663' data-sdk='show_10555663'></script>
     <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
 </head>
-<body class="bg-custom min-h-screen text-gray-100">
+<body>
 
     <!-- Header -->
     <header class="p-4 flex justify-between items-center glass sticky top-0 z-50">
-        <h1 class="text-2xl font-extrabold shimmer-text">PAPERHOUSE INC</h1>
-        <a href="https://t.me/YourTelegramUsername" target="_blank" class="bg-blue-600 px-4 py-2 rounded-full text-sm font-bold animate-bounce">@TelegramSupport</a>
+        <h1 class="text-2xl font-black shimmer-text">PAPERHOUSE INC</h1>
+        <div class="flex gap-2">
+            <button onclick="app.showTab('admin')" class="text-[10px] text-gray-500">Admin</button>
+            <a href="https://t.me/YourTelegramUsername" target="_blank" class="bg-blue-600 px-4 py-2 rounded-full text-xs font-bold">@TelegramSupport</a>
+        </div>
     </header>
 
-    <div id="auth-screen" class="max-w-md mx-auto mt-20 p-6 glass rounded-2xl">
-        <h2 class="text-xl mb-4 shimmer-text font-bold">Registration / Login</h2>
-        <input id="reg-username" type="text" placeholder="Username" class="w-full p-3 mb-4 bg-gray-800 rounded border border-lime-500">
-        <input id="reg-referral" type="text" maxlength="6" placeholder="Referral Code (Optional)" class="w-full p-3 mb-4 bg-gray-800 rounded border border-lime-500">
-        <button onclick="app.register()" class="w-full bg-lime-500 text-black font-bold p-3 rounded hover:bg-lime-400 transition">Enter Portal</button>
+    <!-- Auth Screen -->
+    <div id="auth-screen" class="max-w-md mx-auto mt-20 p-8 glass rounded-3xl shadow-2xl">
+        <h2 class="text-2xl mb-6 shimmer-text font-bold text-center">Member Access</h2>
+        <input id="reg-username" type="text" placeholder="Username" class="w-full p-4 mb-4 rounded-xl outline-none">
+        <input id="reg-referral" type="text" maxlength="6" placeholder="Referral Code (Optional)" class="w-full p-4 mb-6 rounded-xl outline-none">
+        <button onclick="app.register()" class="w-full bg-lime-500 text-black font-bold p-4 rounded-xl hover:bg-lime-400 transition transform active:scale-95">Enter Portal</button>
     </div>
 
+    <!-- Main Dashboard -->
     <main id="main-app" class="max-w-4xl mx-auto p-4 hidden">
-        <!-- Stats Dashboard -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <div class="glass p-4 rounded-xl text-center">
-                <p class="text-xs text-gray-400">Balance</p>                <p class="text-xl font-bold text-lime-400">₱<span id="stat-balance">0.00</span></p>
+        <!-- Stats -->
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+            <div class="glass p-4 rounded-2xl text-center">
+                <p class="text-[10px] uppercase tracking-widest text-gray-400">Balance</p>
+                <p class="text-xl font-bold text-lime-400">₱<span id="stat-balance">0.00</span></p>
             </div>
-            <div class="glass p-4 rounded-xl text-center">
-                <p class="text-xs text-gray-400">Total Earned</p>
+            <div class="glass p-4 rounded-2xl text-center">
+                <p class="text-[10px] uppercase tracking-widest text-gray-400">Total Earned</p>
                 <p class="text-xl font-bold">₱<span id="stat-earned">0.00</span></p>
             </div>
-            <div class="glass p-4 rounded-xl text-center">
-                <p class="text-xs text-gray-400">Referrals</p>
+            <div class="glass p-4 rounded-2xl text-center">
+                <p class="text-[10px] uppercase tracking-widest text-gray-400">Invites</p>
                 <p class="text-xl font-bold" id="stat-invites">0/20</p>
             </div>
-            <div class="glass p-4 rounded-xl text-center">
-                <p class="text-xs text-gray-400">Your Code</p>
+            <div class="glass p-4 rounded-2xl text-center">
+                <p class="text-[10px] uppercase tracking-widest text-gray-400">Your Code</p>
                 <p class="text-xl font-bold text-yellow-400" id="stat-code">------</p>
             </div>
         </div>
 
         <!-- Navigation -->
-        <div class="flex gap-2 mb-6 overflow-x-auto pb-2">
-            <button onclick="app.showTab('tasks')" class="bg-lime-600 px-4 py-2 rounded-lg font-bold min-w-max">Earn & Boost</button>
-            <button onclick="app.showTab('profile')" class="bg-gray-700 px-4 py-2 rounded-lg font-bold min-w-max">My Links</button>
-            <button onclick="app.showTab('wallet')" class="bg-gray-700 px-4 py-2 rounded-lg font-bold min-w-max">Wallet</button>
+        <div class="flex gap-2 mb-6 overflow-x-auto no-scrollbar">
+            <button onclick="app.showTab('tasks')" class="bg-lime-600 px-6 py-2 rounded-xl font-bold">Tasks</button>
+            <button onclick="app.showTab('profile')" class="bg-slate-800 px-6 py-2 rounded-xl font-bold">My Links</button>
+            <button onclick="app.showTab('deposit')" class="bg-slate-800 px-6 py-2 rounded-xl font-bold">Deposit</button>
         </div>
 
         <!-- Section: Tasks -->
         <section id="tab-tasks" class="tab-content">
-            <div class="glass p-6 rounded-2xl mb-8">
-                <h3 class="text-lg font-bold mb-4 shimmer-text">Create Follow Task</h3>
-                <div class="bg-blue-900/30 p-4 rounded mb-4 text-xs">
-                    💡 <b>Rules:</b> Follow the page, Like & Comment on posts. Respect creators.
-                </div>
-                <input id="fb-link" type="text" placeholder="https://facebook.com/yourpage" class="w-full p-3 mb-2 bg-gray-800 rounded border border-gray-600">
-                <input id="fb-desc" type="text" placeholder="Brief description (e.g. Follow for follow)" class="w-full p-3 mb-4 bg-gray-800 rounded border border-gray-600">
-                <div class="flex gap-4">                    <button onclick="app.addTask('free')" class="flex-1 bg-blue-600 p-3 rounded font-bold hover:bg-blue-500">5 Free (100 Clicks)</button>
-                    <button onclick="app.addTask('paid')" class="flex-1 bg-lime-600 p-3 rounded font-bold hover:bg-lime-500">Paid ₱1 (100 Clicks)</button>
+            <div class="glass p-6 rounded-3xl mb-8">
+                <h3 class="text-lg font-bold mb-4 shimmer-text">Post Facebook Task</h3>
+                <input id="fb-link" type="text" placeholder="https://facebook.com/your-page-link" class="w-full p-4 mb-3 rounded-xl">
+                <input id="fb-desc" type="text" placeholder="Task Instruction (e.g. Like & Comment)" class="w-full p-4 mb-4 rounded-xl">
+                <div class="flex gap-4">
+                    <button onclick="app.addTask('free')" class="flex-1 bg-blue-600 p-4 rounded-xl font-bold text-sm">5 Free Tasks</button>
+                    <button onclick="app.addTask('paid')" class="flex-1 bg-lime-600 p-4 rounded-xl font-bold text-sm">₱1 Paid (100 Clicks)</button>
                 </div>
             </div>
 
-            <h3 class="text-xl font-bold mb-4 shimmer-text">Available Tasks</h3>
-            <div id="task-list" class="grid gap-4">
-                <!-- Tasks will be injected here -->
-            </div>
+            <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
+                <span class="w-2 h-6 bg-lime-500 rounded-full"></span> Available Tasks
+            </h3>
+            <div id="task-list" class="grid gap-4"></div>
         </section>
 
         <!-- Section: Profile/My Links -->
         <section id="tab-profile" class="tab-content hidden">
-            <h3 class="text-xl font-bold mb-4 shimmer-text">Management Console</h3>
+            <h3 class="text-xl font-bold mb-4 shimmer-text">Your Promoted Links</h3>
             <div id="my-links-list" class="grid gap-4"></div>
         </section>
 
-        <!-- Section: Wallet -->
-        <section id="tab-wallet" class="tab-content hidden">
-            <div class="grid md:grid-cols-2 gap-8">
-                <!-- Deposit -->
-                <div class="glass p-6 rounded-2xl">
-                    <h3 class="text-lg font-bold mb-4 text-lime-400">Deposit Funds</h3>
-                    <p class="text-xs mb-4">PayPal/FaucetPay: <b>otico.isai2@gmail.com</b><br>GCash: <b>09952533453</b></p>
-                    <input id="dep-amount" type="number" placeholder="Amount" class="w-full p-3 mb-2 bg-gray-800 rounded">
-                    <input id="dep-receipt" type="text" placeholder="Receipt Number / Transaction ID" class="w-full p-3 mb-4 bg-gray-800 rounded">
-                    <button onclick="app.submitDeposit()" class="w-full bg-lime-600 p-3 rounded font-bold">Submit Deposit</button>
+        <!-- Section: Deposit -->
+        <section id="tab-deposit" class="tab-content hidden">
+            <div class="glass p-6 rounded-3xl max-w-lg mx-auto">
+                <h3 class="text-xl font-bold mb-4 text-lime-400">Add Funds</h3>
+                <div class="mb-6 text-sm bg-black/30 p-4 rounded-xl border border-white/10">
+                    <p class="mb-2">💰 GCash: <span class="text-yellow-400 font-bold">09952533453</span></p>
+                    <p class="mb-2">💰 PayPal/FaucetPay: <span class="text-yellow-400 font-bold">otico.isai2@gmail.com</span></p>
                 </div>
-                <!-- Withdraw -->
-                <div class="glass p-6 rounded-2xl">
-                    <h3 class="text-lg font-bold mb-4 text-blue-400">Withdraw Earnings</h3>
-                    <select id="wit-method" class="w-full p-3 mb-2 bg-gray-800 rounded">
-                        <option value="GCash">GCash</option>
-                        <option value="PayPal">PayPal</option>
-                        <option value="FaucetPay">FaucetPay</option>
-                    </select>
-                    <input id="wit-address" type="text" placeholder="Number or Email" class="w-full p-3 mb-2 bg-gray-800 rounded">
-                    <input id="wit-amount" type="number" placeholder="Amount (₱)" class="w-full p-3 mb-4 bg-gray-800 rounded">
-                    <button onclick="app.submitWithdrawal()" class="w-full bg-blue-600 p-3 rounded font-bold">Request Withdrawal</button>
+                <input id="dep-amount" type="number" plac
+
+eholder="Amount (₱)" class="w-full p-4 mb-3 rounded-xl">
+                <input id="dep-receipt" type="text" placeholder="Transaction ID / Receipt #" class="w-full p-4 mb-4 rounded-xl">
+                <button onclick="app.submitDeposit()" class="w-full bg-lime-600 p-4 rounded-xl font-bold">Submit Payment</button>
+                
+                <div class="mt-8 text-center border-t border-white/10 pt-4">
+                    <p class="text-xs text-gray-400 mb-2">Support the Creator</p>
+                    <button class="text-sm text-yellow-500 font-bold">☕ Give Admin Coffee</button>
                 </div>
             </div>
-            
-            <div class="mt-8 glass p-6 rounded-2xl">
-                <h3 class="font-bold mb-4">Give admin some coffee ☕</h3>
-                <p class="text-sm italic">GCash/PayPal: Support the platform</p>
+        </section>
+
+        <!-- Section: Admin -->
+        <section id="tab-admin" class="tab-content hidden">
+            <div id="admin-login" class="glass p-6 rounded-3xl max-w-sm mx-auto">
+                <input id="admin-pass" type="password" placeholder="Admin Password" class="w-full p-4 mb-4 rounded-xl">
+                <button onclick="app.adminLogin()" class="w-full bg-red-600 p-4 rounded-xl font-bold">Access Panel</button>
+            </div>
+            <div id="admin-panel" class="hidden">
+                <h3 class="text-xl font-bold mb-4 text-red-400">Pending Deposits</h3>
+                <div id="admin-deposit-list" class="grid gap-4"></div>
             </div>
         </section>
     </main>
 
     <!-- Timer Overlay -->
-    <div id="timer-overlay" class="fixed inset-0 bg-black/90 z-[100] flex flex-col items-center justify-center hidden">
-        <h2 class="text-4xl font-bold text-lime-400 mb-4" id="timer-display">15</h2>
-        <p class="text-xl">Stay on the Facebook page to earn!</p>
-        <p id="timer-status" class="text-yellow-500 mt-2"></p>
-        <button id="resume-btn" onclick="app.resumeTask()" class="mt-4 bg-lime-500 text-black px-6 py-2 rounded hidden">Resume Task</button>
+    <div id="timer-overlay" class="fixed inset-0 bg-black/95 z-[100] flex flex-col items-center justify-center hidden">
+        <div class="text-center p-8 glass rounded-full w-64 h-64 flex flex-col items-center justify-center border-4 border-lime-500">
+            <h2 class="text-6xl font-black text-lime-400 mb-2" id="timer-display">15</h2>
+            <p class="text-[10px] uppercase tracking-tighter">Seconds Remaining</p>
+        </div>
+        <div class="mt-8 text-center max-w-xs">
+            <p class="text-lg font-bold mb-2">DO NOT CLOSE FACEBOOK</p>
+            <p id="timer-status" class="text-yellow-500 text-sm italic">Waiting for focus...</p>
+            <button id="resume-btn" onclick="app.resumeTask()" class="mt-4 bg-lime-500 text-black px-8 py-3 rounded-full font-bold hidden">RESUME EARNING</button>
+        </div>
     </div>
 
-    <!-- Firebase -->
     <script type="module" src="app.js"></script>
 </body>
 </html>
