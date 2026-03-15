@@ -3,14 +3,15 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebas
 import { getDatabase, ref, set, get, update, push, onValue, remove, query, limitToLast } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyBwpa8mA83JAv2A2Dj0rh5VHwodyv5N3dg",
-    authDomain: "freegcash-ads.firebaseapp.com",
-    databaseURL: "https://freegcash-ads-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "freegcash-ads",
-    storageBucket: "freegcash-ads.firebasestorage.app",
-    messagingSenderId: "608086825364",
-    appId: "1:608086825364:web:3a8e628d231b52c6171781"
+    apiKey: "AIzaSyDMGU5X7BBp-C6tIl34Uuu5N9MXAVFTn7c",
+    authDomain: "paper-house-inc.firebaseapp.com",
+    databaseURL: "https://paper-house-inc-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "paper-house-inc",
+    storageBucket: "paper-house-inc.firebasestorage.app",
+    messagingSenderId: "658389836376",
+    appId: "1:658389836376:web:2ab1e2743c593f4ca8e02d"
 };
+
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
